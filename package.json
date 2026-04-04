@@ -1,0 +1,16 @@
+{
+  "name": "articulate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Collaborative legal/policy document editor with branching, diff, and merge.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server/index.js",
+    "start": "node src/server/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
