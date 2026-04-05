@@ -22,8 +22,8 @@ router.get('/:revA/:revB', (req, res) => {
   const diff = diffTrees(treeA, treeB, nodeLookup)
 
   res.json({
-    from: { id: revA, message: revisionA.message, created_at: revisionA.created_at },
-    to: { id: revB, message: revisionB.message, created_at: revisionB.created_at },
+    from: { id: revA, seq: revisionA.seq, message: revisionA.message, created_at: revisionA.created_at },
+    to: { id: revB, seq: revisionB.seq, message: revisionB.message, created_at: revisionB.created_at },
     summary: {
       added: diff.added.length,
       removed: diff.removed.length,

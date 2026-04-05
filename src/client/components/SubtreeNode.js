@@ -31,7 +31,7 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
         <div class="subtree-node__actions">
           <button class="subtree-btn" onclick=${() => onEdit(node.path)} title="Edit">✎</button>
           <button class="subtree-btn" onclick=${() => onAddChild(node.path)} title="Add child">+</button>
-          <button class="subtree-btn subtree-btn--danger" onclick=${() => onDelete(node.path)} title="Delete">✕</button>
+          <button class="subtree-btn subtree-btn--danger" onclick=${() => onDelete(node.path)} title="Delete">🗑</button>
         </div>
       </div>
       ${isEditing

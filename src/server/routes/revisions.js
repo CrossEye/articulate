@@ -61,6 +61,11 @@ router.post('/', (req, res) => {
 // PATCH /api/v1/revisions/:revisionId/publish
 revisionDetail.patch('/:revisionId/publish', (req, res) => {
   const db = req.app.locals.db
+  const { message } = req.body || {}
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'A revision message is required when publishing' })
+  }
+  db.prepare('UPDATE revisions SET message = ? WHERE id = ?').run(message.trim(), req.params.revisionId)
   revisions.publishRevision(db, req.params.revisionId)
   const rev = revisions.getRevision(db, req.params.revisionId)
   res.json(rev)

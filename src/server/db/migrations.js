@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -116,6 +116,10 @@ const migration_002 = `
   );
 `
 
+const migration_003 = `
+  ALTER TABLE revisions ADD COLUMN seq INTEGER;
+`
+
 const runMigrations = (db) => {
   db.exec('CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT)')
 
@@ -127,6 +131,21 @@ const runMigrations = (db) => {
   }
   if (currentVersion < 2) {
     db.exec(migration_002)
+  }
+  if (currentVersion < 3) {
+    db.exec(migration_003)
+    // Backfill seq per document across all versions
+    const docs = db.prepare('SELECT DISTINCT document_id FROM versions').all()
+    const stmt = db.prepare('UPDATE revisions SET seq = ? WHERE id = ?')
+    for (const { document_id } of docs) {
+      const revs = db.prepare(`
+        SELECT r.id FROM revisions r
+        JOIN versions v ON v.id = r.version_id
+        WHERE v.document_id = ?
+        ORDER BY r.id
+      `).all(document_id)
+      revs.forEach((r, i) => stmt.run(i + 1, r.id))
+    }
   }
   if (currentVersion < SCHEMA_VERSION) {
     db.prepare('INSERT OR REPLACE INTO _meta (key, value) VALUES (?, ?)')

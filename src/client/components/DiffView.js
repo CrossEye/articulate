@@ -34,9 +34,9 @@ const DiffView = ({ params }) => {
       <div class="diff-view__header">
         <h2>Diff</h2>
         <div class="diff-view__revisions">
-          <span class="diff-rev diff-rev--from" title=${from.id}>${from.id.slice(0, 12)}...</span>
+          <span class="diff-rev diff-rev--from" title=${from.id}>Rev ${from.seq}</span>
           <span class="diff-arrow">\u2192</span>
-          <span class="diff-rev diff-rev--to" title=${to.id}>${to.id.slice(0, 12)}...</span>
+          <span class="diff-rev diff-rev--to" title=${to.id}>Rev ${to.seq}</span>
         </div>
         <div class="diff-view__messages">
           ${from.message && html`<div class="diff-msg"><strong>From:</strong> ${from.message}</div>`}

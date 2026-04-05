@@ -250,9 +250,15 @@
   background: var(--color-hover);
 }
 
-.revision-history__id {
+.revision-history__seq {
+  font-weight: 600;
+  text-align: right;
+}
+
+.revision-history__version {
   font-family: var(--font-mono);
   font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 .revision-history__date {

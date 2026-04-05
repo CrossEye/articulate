@@ -7,10 +7,19 @@ const createRevision = (db, { versionId, parentId = null, message = null, create
   const id = uuidv7()
 
   const insert = db.transaction(() => {
+    // Seq is per-document, not per-version, so revision numbers are unambiguous
+    const docRow = db.prepare('SELECT document_id FROM versions WHERE id = ?').get(versionId)
+    const maxSeq = db.prepare(`
+      SELECT MAX(r.seq) AS m FROM revisions r
+      JOIN versions v ON v.id = r.version_id
+      WHERE v.document_id = ?
+    `).get(docRow.document_id)
+    const seq = (maxSeq?.m || 0) + 1
+
     db.prepare(`
-      INSERT INTO revisions (id, version_id, parent_id, message, created_by, merge_sources)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, versionId, parentId, message, createdBy, mergeSources ? JSON.stringify(mergeSources) : null)
+      INSERT INTO revisions (id, version_id, parent_id, message, created_by, merge_sources, seq)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, versionId, parentId, message, createdBy, mergeSources ? JSON.stringify(mergeSources) : null, seq)
 
     // If there's a parent, copy its tree_entries as the base
     if (parentId) {
@@ -45,10 +54,18 @@ const createInitialRevision = (db, { versionId, message = null, createdBy = null
   const id = uuidv7()
 
   const insert = db.transaction(() => {
+    const docRow = db.prepare('SELECT document_id FROM versions WHERE id = ?').get(versionId)
+    const maxSeq = db.prepare(`
+      SELECT MAX(r.seq) AS m FROM revisions r
+      JOIN versions v ON v.id = r.version_id
+      WHERE v.document_id = ?
+    `).get(docRow.document_id)
+    const seq = (maxSeq?.m || 0) + 1
+
     db.prepare(`
-      INSERT INTO revisions (id, version_id, parent_id, message, created_by)
-      VALUES (?, ?, NULL, ?, ?)
-    `).run(id, versionId, message, createdBy)
+      INSERT INTO revisions (id, version_id, parent_id, message, created_by, seq)
+      VALUES (?, ?, NULL, ?, ?, ?)
+    `).run(id, versionId, message, createdBy, seq)
 
     const stmt = db.prepare(`
       INSERT INTO tree_entries (revision_id, path, node_id, parent_path, sort_key, marker, depth)

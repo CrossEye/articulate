@@ -8,14 +8,30 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
   const [showPublish, setShowPublish] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [revisions, setRevisions] = useState([])
+  const [revDetail, setRevDetail] = useState(null)
+  const [publishMessage, setPublishMessage] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
+  useEffect(() => {
+    api.get(`/revisions/${revisionId}`)
+      .then(rev => setRevDetail(rev))
+      .catch(() => setRevDetail(null))
+  }, [revisionId])
+
+  const parentId = revDetail?.parent_id
+  const seq = revDetail?.seq
+
   const handlePublish = async () => {
+    if (!publishMessage.trim()) return
     setBusy(true)
-    await api.patch(`/revisions/${revisionId}/publish`)
+    await api.patch(`/revisions/${revisionId}/publish`, { message: publishMessage.trim() })
     setBusy(false)
     setShowPublish(false)
+    setPublishMessage('')
+    // Refresh detail to show updated message
+    const rev = await api.get(`/revisions/${revisionId}`)
+    setRevDetail(rev)
   }
 
   const handleNewRevision = async () => {
@@ -40,13 +56,10 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
     setShowHistory(!showHistory)
   }
 
-  const currentRevision = revisions.find(r => r.id === revisionId)
-  const parentId = currentRevision?.parent_id
-
   return html`
     <div class="revision-controls">
       <span class="revision-controls__id" title=${revisionId}>
-        Rev: ${revisionId.slice(0, 8)}...
+        Rev ${seq || '?'}
       </span>
 
       ${!showPublish
@@ -55,8 +68,16 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
         `
         : html`
           <div class="revision-controls__publish">
-            <p class="text-muted">Publishing makes this revision immutable.</p>
-            <button class="btn btn--primary btn--sm" onclick=${handlePublish} disabled=${busy}>Confirm Publish</button>
+            <input
+              class="revision-controls__message"
+              type="text"
+              placeholder="Describe this revision..."
+              value=${publishMessage}
+              onInput=${(e) => setPublishMessage(e.target.value)}
+              onKeyDown=${(e) => e.key === 'Enter' && handlePublish()}
+              style="width: 280px"
+            />
+            <button class="btn btn--primary btn--sm" onclick=${handlePublish} disabled=${busy || !publishMessage.trim()}>Confirm Publish</button>
             <button class="btn btn--sm" onclick=${() => setShowPublish(false)}>Cancel</button>
           </div>
         `
@@ -104,7 +125,6 @@ const RevisionHistory = ({ revisions, currentId, docId, versionSlug }) => {
 
   const handleCompare = () => {
     if (selectedA && selectedB && selectedA !== selectedB) {
-      // Always show older → newer
       const sorted = [selectedA, selectedB].sort()
       navigate(`/${docId}/${versionSlug}/diff/${sorted[0]}/${sorted[1]}`)
     }
@@ -123,8 +143,9 @@ const RevisionHistory = ({ revisions, currentId, docId, versionSlug }) => {
           <tr>
             <th>A</th>
             <th>B</th>
-            <th>Revision</th>
+            <th>#</th>
             <th>Message</th>
+            <th>Version</th>
             <th>Date</th>
             <th></th>
           </tr>
@@ -134,8 +155,9 @@ const RevisionHistory = ({ revisions, currentId, docId, versionSlug }) => {
             <tr class=${rev.id === currentId ? 'revision-history__current' : ''}>
               <td><input type="radio" name="diffA" checked=${selectedA === rev.id} onchange=${() => setSelectedA(rev.id)} /></td>
               <td><input type="radio" name="diffB" checked=${selectedB === rev.id} onchange=${() => setSelectedB(rev.id)} /></td>
-              <td class="revision-history__id">${rev.id.slice(0, 12)}...</td>
-              <td>${rev.message || ''}</td>
+              <td class="revision-history__seq">${rev.seq || '?'}</td>
+              <td>${rev.message || html`<span class="text-muted">-</span>`}</td>
+              <td class="revision-history__version">${rev.version_id}</td>
               <td class="revision-history__date">${new Date(rev.created_at + 'Z').toLocaleString()}</td>
               <td>
                 ${rev.parent_id && html`
