@@ -4,6 +4,10 @@ import path from 'node:path'
 import { createConnection } from './db/connection.js'
 import { runMigrations } from './db/migrations.js'
 import docsRouter from './routes/docs.js'
+import documentsRouter from './routes/documents.js'
+import versionsRouter from './routes/versions.js'
+import revisionsRouter, { revisionDetail } from './routes/revisions.js'
+import nodesRouter from './routes/nodes.js'
 import { createLiveReload } from './live-reload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -24,8 +28,13 @@ app.use('/assets', express.static(path.join(PROJECT_ROOT, 'dist')))
 
 // API routes
 app.use('/api/v1/docs', docsRouter)
+app.use('/api/v1/documents', documentsRouter)
+app.use('/api/v1/documents/:docId/versions', versionsRouter)
+app.use('/api/v1/versions/:versionId/revisions', revisionsRouter)
+app.use('/api/v1/revisions', revisionDetail)
+app.use('/api/v1/revisions', nodesRouter)
 
-// Placeholder API root
+// API root
 app.get('/api/v1', (req, res) => {
   res.json({ name: 'articulate', version: '0.1.0' })
 })
@@ -38,6 +47,11 @@ if (liveReload) {
 
 // SPA fallback — serve index.html for all non-API, non-asset routes
 app.get('*splat', (req, res) => {
+  const url = req.originalUrl
+  if (url.startsWith('/api/') || url.startsWith('/assets/')) {
+    res.status(404).json({ error: 'Not found' })
+    return
+  }
   res.sendFile(path.join(PROJECT_ROOT, 'dist', 'index.html'))
 })
 

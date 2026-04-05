@@ -40,7 +40,7 @@ const nextMarker = (marker) => {
     const next = String.fromCharCode(code + 1)
     return marker === marker.toUpperCase() ? next.toUpperCase() : next
   }
-  if (isRoman(marker)) {
+  if (isRoman(marker) && marker.length > 1) {
     const val = parseRoman(marker)
     const next = toRoman(val + 1)
     return marker === marker.toLowerCase() ? next.toLowerCase() : next
