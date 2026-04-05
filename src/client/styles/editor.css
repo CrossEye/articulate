@@ -133,6 +133,108 @@
   font-size: 0.8rem;
 }
 
+/* ---- Subtree view ---- */
+
+.subtree-node {
+  margin: 0.25em 0;
+  padding: 0.35em 0.5em;
+  border-left: 2px solid var(--color-border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  position: relative;
+}
+
+/* Innermost hover only */
+.subtree-node:hover:not(:has(.subtree-node:hover)) {
+  background: var(--color-hover);
+}
+
+.subtree-node__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 1.8em;
+}
+
+.subtree-node__marker {
+  font-weight: bold;
+  min-width: 1.5em;
+  color: var(--color-text-muted);
+}
+
+.subtree-node__caption {
+  flex: 1;
+  font-weight: 600;
+}
+
+.subtree-node__actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+/* Show toolbar only on the innermost hovered node */
+.subtree-node:hover:not(:has(.subtree-node:hover)) > .subtree-node__header .subtree-node__actions {
+  opacity: 1;
+}
+
+.subtree-btn {
+  font-size: 0.85em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-bg);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.subtree-btn:hover {
+  background: var(--color-bg-alt);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.subtree-btn--danger:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.subtree-node__body {
+  margin: 0.25em 0;
+  line-height: 1.5;
+}
+
+.subtree-node__body p {
+  margin: 0.25em 0;
+}
+
+.subtree-node__children {
+  margin-left: 1em;
+}
+
+/* Add child form inline */
+.subtree-add-form {
+  margin: var(--space-sm) 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-alt);
+}
+
+.subtree-add-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.subtree-add-form__buttons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
 /* ---- Editable node hover ---- */
 
 .node-readonly--editable {

@@ -52,6 +52,25 @@ router.get('/:revisionId/context/*nodePath', (req, res) => {
   })
 })
 
+// GET /api/v1/revisions/:revisionId/subtree/:path+ — full descendant tree with node content
+router.get('/:revisionId/subtree/*nodePath', (req, res) => {
+  const db = req.app.locals.db
+  const { revisionId } = req.params
+  const nodePath = [].concat(req.params.nodePath).join('/')
+
+  const allEntries = revisions.getTree(db, revisionId)
+  const relevant = allEntries.filter(e => e.path === nodePath || e.path.startsWith(nodePath + '/'))
+
+  if (relevant.length === 0) return res.status(404).json({ error: 'Node not found at path' })
+
+  const nodes = relevant.map(e => {
+    const node = getNode(db, e.node_id)
+    return { ...e, ...node }
+  })
+
+  res.json(nodes)
+})
+
 // PUT /api/v1/revisions/:revisionId/nodes/:path+ — update node (creates new revision)
 router.put('/:revisionId/nodes/*nodePath', (req, res) => {
   const db = req.app.locals.db

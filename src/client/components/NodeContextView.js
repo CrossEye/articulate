@@ -3,34 +3,41 @@ import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
 import { state } from '../state.js'
 import { navigate } from '../router.js'
 import api from '../api.js'
-import NodeReadOnly from './NodeReadOnly.js'
-import NodeEditor from './NodeEditor.js'
-import TreeActions from './TreeActions.js'
+import { nextMarker } from '../../shared/markers.js'
+import { parentPath } from '../../shared/paths.js'
+import SubtreeNode from './SubtreeNode.js'
+import RevisionControls from './RevisionControls.js'
 
 const AUTOSAVE_DELAY = 2000
-const LOCK_RENEW_INTERVAL = 3 * 60_000 // renew every 3 minutes
+const LOCK_RENEW_INTERVAL = 3 * 60_000
 
 const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
-  const [context, setContext] = useState(null)
+  const [subtree, setSubtree] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingPath, setEditingPath] = useState(null)
+  const [addingChildOf, setAddingChildOf] = useState(null)
   const [liveRevisionId, setLiveRevisionId] = useState(revisionId)
   const autosaveTimer = useRef(null)
   const lockRenewTimer = useRef(null)
 
-  // Load context when revision or path changes
+  const revId = liveRevisionId || revisionId
+
+  // Load subtree when revision or path changes
+  const loadSubtree = useCallback(async (rid) => {
+    const data = await api.get(`/revisions/${rid}/subtree/${path}`)
+    setSubtree(data)
+  }, [path])
+
   useEffect(() => {
-    const revId = liveRevisionId || revisionId
     if (!revId || !path) return
     setLoading(true)
-    api.get(`/revisions/${revId}/context/${path}`)
-      .then(data => {
-        setContext(data)
+    loadSubtree(revId)
+      .then(() => {
         setLoading(false)
         state.currentPath.value = path
       })
       .catch(() => {
-        setContext(null)
+        setSubtree(null)
         setLoading(false)
       })
   }, [revisionId, liveRevisionId, path])
@@ -39,48 +46,33 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
   useEffect(() => {
     setLiveRevisionId(revisionId)
     setEditingPath(null)
+    setAddingChildOf(null)
   }, [revisionId])
 
-  const handleEdit = async (nodePath) => {
-    const revId = liveRevisionId || revisionId
+  const refreshAfterChange = useCallback(async (newRevId) => {
+    setLiveRevisionId(newRevId)
+    state.currentRevision.value = newRevId
+    await loadSubtree(newRevId)
+    const tree = await api.get(`/revisions/${newRevId}/tree`)
+    state.treeData.value = tree
+  }, [loadSubtree])
+
+  // --- Edit lock management ---
+
+  const handleEdit = useCallback(async (nodePath) => {
     const result = await api.post(`/revisions/${revId}/locks/${nodePath}`, { userId: 'anonymous' })
     if (!result.acquired) {
       alert(`This node is being edited by ${result.holder}. Try again after ${new Date(result.expiresAt).toLocaleTimeString()}.`)
       return
     }
     setEditingPath(nodePath)
-    // Start lock renewal
+    setAddingChildOf(null)
     lockRenewTimer.current = setInterval(() => {
-      const currentRevId = liveRevisionId || revisionId
-      api.patch(`/revisions/${currentRevId}/locks/${nodePath}`, { userId: 'anonymous' }).catch(() => {})
+      api.patch(`/revisions/${revId}/locks/${nodePath}`, { userId: 'anonymous' }).catch(() => {})
     }, LOCK_RENEW_INTERVAL)
-  }
+  }, [revId])
 
-  const handleSave = useCallback(async (nodePath, { body, caption }) => {
-    const revId = liveRevisionId || revisionId
-    const result = await api.put(`/revisions/${revId}/nodes/${nodePath}`, { body, caption })
-    if (result.changed) {
-      setLiveRevisionId(result.revisionId)
-      state.currentRevision.value = result.revisionId
-      // Reload tree to reflect any changes
-      const tree = await api.get(`/revisions/${result.revisionId}/tree`)
-      state.treeData.value = tree
-    }
-  }, [liveRevisionId, revisionId])
-
-  const handleAutoSave = useCallback((nodePath, fields) => {
-    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
-    autosaveTimer.current = setTimeout(() => handleSave(nodePath, fields), AUTOSAVE_DELAY)
-  }, [handleSave])
-
-  const handleRevisionChange = useCallback(async (newRevId) => {
-    setLiveRevisionId(newRevId)
-    state.currentRevision.value = newRevId
-    const tree = await api.get(`/revisions/${newRevId}/tree`)
-    state.treeData.value = tree
-  }, [])
-
-  const handleDoneEditing = () => {
+  const handleDoneEditing = useCallback(() => {
     if (autosaveTimer.current) {
       clearTimeout(autosaveTimer.current)
       autosaveTimer.current = null
@@ -89,97 +81,87 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
       clearInterval(lockRenewTimer.current)
       lockRenewTimer.current = null
     }
-    // Release the lock
     if (editingPath) {
-      const revId = liveRevisionId || revisionId
       api.delete(`/revisions/${revId}/locks/${editingPath}?userId=anonymous`).catch(() => {})
     }
     setEditingPath(null)
-  }
+  }, [editingPath, revId])
+
+  // --- Save ---
+
+  const handleSave = useCallback(async (nodePath, { body, caption }) => {
+    const result = await api.put(`/revisions/${revId}/nodes/${nodePath}`, { body, caption })
+    if (result.changed) {
+      await refreshAfterChange(result.revisionId)
+    }
+  }, [revId, refreshAfterChange])
+
+  // --- Add child ---
+
+  const handleAddChild = useCallback((nodePath) => {
+    setAddingChildOf(nodePath)
+    setEditingPath(null)
+  }, [])
+
+  const handleAddChildSubmit = useCallback(async (parentNodePath, { marker, caption, body }) => {
+    const result = await api.post(`/revisions/${revId}/children/${parentNodePath}`, {
+      marker, caption, body,
+    })
+    setAddingChildOf(null)
+    if (result.revisionId) {
+      await refreshAfterChange(result.revisionId)
+    }
+  }, [revId, refreshAfterChange])
+
+  const handleCancelAdd = useCallback(() => {
+    setAddingChildOf(null)
+  }, [])
+
+  // --- Delete ---
+
+  const handleDelete = useCallback(async (nodePath) => {
+    if (!confirm('Delete this node and all its children?')) return
+    const result = await api.delete(`/revisions/${revId}/nodes/${nodePath}`)
+    if (result.revisionId) {
+      await refreshAfterChange(result.revisionId)
+      // If we deleted the root node we're viewing, navigate to parent
+      if (nodePath === path) {
+        const parent = parentPath(path)
+        if (parent) navigate(`/${docId}/${versionSlug}/${parent}`)
+      }
+    }
+  }, [revId, refreshAfterChange, path, docId, versionSlug])
+
+  // --- Render ---
 
   if (loading) return html`<div class="node-context"><p class="text-muted">Loading...</p></div>`
-  if (!context) return html`<div class="node-context"><p>Node not found.</p></div>`
+  if (!subtree || subtree.length === 0) return html`<div class="node-context"><p>Node not found.</p></div>`
 
-  const { node, siblings, children } = context
+  const rootNode = subtree.find(n => n.path === path)
+  if (!rootNode) return html`<div class="node-context"><p>Node not found.</p></div>`
+
+  const childNodes = subtree.filter(n => n.parent_path === path)
 
   return html`
     <div class="node-context">
-      ${editingPath === node.path
-        ? html`<${NodeEditor}
-            node=${node}
-            onSave=${(fields) => handleSave(node.path, fields)}
-            onCancel=${handleDoneEditing}
-          />`
-        : html`<${NodeReadOnly}
-            node=${node}
-            docId=${docId}
-            versionSlug=${versionSlug}
-            onEdit=${() => handleEdit(node.path)}
-          />`
-      }
-
-      <${TreeActions}
-        revisionId=${liveRevisionId || revisionId}
-        path=${path}
+      <${SubtreeNode}
+        node=${rootNode}
+        childNodes=${childNodes}
+        allNodes=${subtree}
         docId=${docId}
         versionSlug=${versionSlug}
-        siblings=${children}
-        onRevisionChange=${handleRevisionChange}
+        editingPath=${editingPath}
+        addingChildOf=${addingChildOf}
+        onEdit=${handleEdit}
+        onSave=${handleSave}
+        onCancel=${handleDoneEditing}
+        onAddChild=${handleAddChild}
+        onAddChildSubmit=${handleAddChildSubmit}
+        onCancelAdd=${handleCancelAdd}
+        onDelete=${handleDelete}
       />
-
-      ${children.length > 0 && html`
-        <div class="node-context__children">
-          ${children.map(child => html`
-            <${ChildNode}
-              entry=${child}
-              revisionId=${liveRevisionId || revisionId}
-              docId=${docId}
-              versionSlug=${versionSlug}
-              editingPath=${editingPath}
-              onEdit=${handleEdit}
-              onSave=${handleSave}
-              onDone=${handleDoneEditing}
-            />
-          `)}
-        </div>
-      `}
     </div>
   `
-}
-
-const ChildNode = ({ entry, revisionId, docId, versionSlug, editingPath, onEdit, onSave, onDone }) => {
-  const [node, setNode] = useState(null)
-
-  useEffect(() => {
-    api.get(`/revisions/${revisionId}/nodes/${entry.path}`)
-      .then(setNode)
-      .catch(() => {})
-  }, [revisionId, entry.path])
-
-  if (!node) return html`
-    <div class="node-readonly node-readonly--context">
-      <header class="node-readonly__header">
-        <span class="node-readonly__marker">${entry.marker}.</span>
-        <span class="node-readonly__caption">Loading...</span>
-      </header>
-    </div>
-  `
-
-  if (editingPath === entry.path) {
-    return html`<${NodeEditor}
-      node=${node}
-      onSave=${(fields) => onSave(entry.path, fields)}
-      onCancel=${onDone}
-    />`
-  }
-
-  return html`<${NodeReadOnly}
-    node=${node}
-    docId=${docId}
-    versionSlug=${versionSlug}
-    isContext=${true}
-    onEdit=${() => onEdit(entry.path)}
-  />`
 }
 
 export default NodeContextView
