@@ -1,8 +1,8 @@
-const createVersion = (db, { id, documentId, name, description = null, createdBy = null, forkedFrom = null }) => {
+const createVersion = (db, { id, documentId, name, description = null, createdBy = null, forkedFrom = null, kind = 'version' }) => {
   db.prepare(`
-    INSERT INTO versions (id, document_id, name, description, created_by, forked_from)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, documentId, name, description, createdBy, forkedFrom)
+    INSERT INTO versions (id, document_id, name, description, created_by, forked_from, kind)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, documentId, name, description, createdBy, forkedFrom, kind)
 }
 
 const getVersion = (db, id) =>
@@ -17,6 +17,8 @@ const updateVersion = (db, id, fields) => {
   if (fields.name !== undefined) { sets.push('name = ?'); values.push(fields.name) }
   if (fields.description !== undefined) { sets.push('description = ?'); values.push(fields.description) }
   if (fields.headRev !== undefined) { sets.push('head_rev = ?'); values.push(fields.headRev) }
+  if (fields.locked !== undefined) { sets.push('locked = ?'); values.push(fields.locked ? 1 : 0) }
+  if (fields.kind !== undefined) { sets.push('kind = ?'); values.push(fields.kind) }
   if (sets.length === 0) return
   values.push(id)
   db.prepare(`UPDATE versions SET ${sets.join(', ')} WHERE id = ?`).run(...values)
@@ -36,4 +38,10 @@ const getVersionMembers = (db, versionId) =>
     WHERE vm.version_id = ?
   `).all(versionId)
 
-export { createVersion, getVersion, listVersions, updateVersion, addVersionMember, getVersionMembers }
+const lockVersion = (db, id) =>
+  db.prepare('UPDATE versions SET locked = 1 WHERE id = ?').run(id)
+
+const unlockVersion = (db, id) =>
+  db.prepare('UPDATE versions SET locked = 0 WHERE id = ?').run(id)
+
+export { createVersion, getVersion, listVersions, updateVersion, lockVersion, unlockVersion, addVersionMember, getVersionMembers }

@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -157,6 +157,34 @@ const runMigrations = (db) => {
     for (const { id } of docs) {
       const v = db.prepare(`SELECT id FROM versions WHERE document_id = ? AND forked_from IS NULL LIMIT 1`).get(id)
       if (v) db.prepare('UPDATE documents SET published_version = ? WHERE id = ?').run(v.id, id)
+    }
+  }
+  if (currentVersion < 5) {
+    // Tags table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS tags (
+        name        TEXT NOT NULL,
+        document_id TEXT NOT NULL REFERENCES documents(id),
+        revision_id TEXT NOT NULL REFERENCES revisions(id),
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        created_by  TEXT,
+        PRIMARY KEY (document_id, name)
+      );
+      CREATE INDEX IF NOT EXISTS idx_tags_doc ON tags(document_id);
+      CREATE INDEX IF NOT EXISTS idx_tags_rev ON tags(revision_id);
+    `)
+    // Add locked and kind columns to versions
+    const cols = db.prepare('PRAGMA table_info(versions)').all()
+    if (!cols.some(c => c.name === 'locked')) {
+      db.exec(`ALTER TABLE versions ADD COLUMN locked INTEGER NOT NULL DEFAULT 0`)
+    }
+    if (!cols.some(c => c.name === 'kind')) {
+      db.exec(`ALTER TABLE versions ADD COLUMN kind TEXT NOT NULL DEFAULT 'version'`)
+    }
+    // Lock published versions
+    const docs = db.prepare('SELECT published_version FROM documents WHERE published_version IS NOT NULL').all()
+    for (const { published_version } of docs) {
+      db.prepare('UPDATE versions SET locked = 1 WHERE id = ?').run(published_version)
     }
   }
   if (currentVersion < SCHEMA_VERSION) {

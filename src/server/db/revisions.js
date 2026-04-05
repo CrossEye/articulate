@@ -7,8 +7,12 @@ const createRevision = (db, { versionId, parentId = null, message = null, create
   const id = uuidv7()
 
   const insert = db.transaction(() => {
+    // Guard: cannot add revisions to a locked version
+    const ver = db.prepare('SELECT locked, document_id FROM versions WHERE id = ?').get(versionId)
+    if (ver?.locked) throw new Error('Cannot create revision on locked version')
+
     // Seq is per-document, not per-version, so revision numbers are unambiguous
-    const docRow = db.prepare('SELECT document_id FROM versions WHERE id = ?').get(versionId)
+    const docRow = ver
     const maxSeq = db.prepare(`
       SELECT MAX(r.seq) AS m FROM revisions r
       JOIN versions v ON v.id = r.version_id

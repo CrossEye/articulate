@@ -27,6 +27,8 @@ const TopBar = () => {
           ? html`<a class="top-bar__crumb" href=${versionHref} onclick=${(e) => { e.preventDefault(); navigate(versionHref) }}>${version.name}</a>`
           : html`<span class="top-bar__current">${version.name}</span>`
         }
+        ${version.kind === 'branch' && html`<span class="top-bar__badge">branch</span>`}
+        ${version.locked && html`<span class="top-bar__badge">locked</span>`}
       `}
       ${version && revSeq != null && html`
         <span class="top-bar__sep">/</span>

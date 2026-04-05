@@ -108,6 +108,17 @@ a:hover {
   opacity: 0.95;
 }
 
+.top-bar__badge {
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.15);
+  color: var(--color-accent);
+  margin-left: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .top-bar__spacer {
   flex: 1;
 }
@@ -173,6 +184,71 @@ a:hover {
 
 .version-row:hover {
   background: var(--color-hover);
+}
+
+/* ---- Status & tag badges ---- */
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.status-badge--published {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge--locked {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tag-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 500;
+}
+
+.tag-badge--sm {
+  font-size: 0.65rem;
+  padding: 0 4px;
+}
+
+/* ---- Branch form ---- */
+
+.branch-toolbar {
+  margin-bottom: var(--space-md);
+}
+
+.branch-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.branch-form--inline {
+  display: inline-flex;
+}
+
+.branch-form__input {
+  padding: 3px var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  width: 200px;
+}
+
+.branch-form__input--sm {
+  width: 80px;
 }
 
 /* ---- Revision view (sidebar + content) ---- */

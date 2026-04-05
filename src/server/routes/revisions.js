@@ -45,12 +45,18 @@ router.post('/', (req, res) => {
     .filter(c => c.action === 'remove')
     .map(c => c.path)
 
-  const revId = revisions.createRevision(db, {
-    versionId,
-    parentId,
-    message,
-    entries,
-  })
+  let revId
+  try {
+    revId = revisions.createRevision(db, {
+      versionId,
+      parentId,
+      message,
+      entries,
+    })
+  } catch (err) {
+    if (err.message.includes('locked version')) return res.status(409).json({ error: 'Version is locked' })
+    throw err
+  }
 
   if (removals.length > 0) {
     revisions.removeTreeEntries(db, revId, removals)
