@@ -240,13 +240,6 @@ a:hover {
   text-decoration: none;
 }
 
-.tree-node__marker {
-  font-weight: 600;
-  margin-right: var(--space-xs);
-  color: var(--color-primary-dark);
-  font-size: 0.8rem;
-}
-
 /* ---- Content area ---- */
 
 .content-area {

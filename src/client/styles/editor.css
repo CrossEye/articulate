@@ -179,8 +179,8 @@
 }
 
 .subtree-btn {
-  font-size: 0.85em;
-  padding: 0.1em 0.45em;
+  font-size: 1.25em;
+  padding: 0.15em 0.55em;
   border: 1px solid var(--color-border);
   border-radius: 3px;
   background: var(--color-bg);
@@ -207,6 +207,12 @@
 }
 
 .subtree-node__body p {
+  margin: 0.25em 0;
+}
+
+.subtree-node__body ul,
+.subtree-node__body ol {
+  padding-left: 1.5em;
   margin: 0.25em 0;
 }
 

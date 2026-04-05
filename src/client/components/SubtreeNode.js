@@ -26,7 +26,7 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
   return html`
     <div class="subtree-node" data-depth=${node.depth}>
       <div class="subtree-node__header">
-        <span class="subtree-node__marker">${node.marker ? node.marker + '.' : ''}</span>
+        ${node.marker && html`<span class="subtree-node__marker">${node.marker}.</span>`}
         <span class="subtree-node__caption">${node.caption || ''}</span>
         <div class="subtree-node__actions">
           <button class="subtree-btn" onclick=${() => onEdit(node.path)} title="Edit">✎</button>

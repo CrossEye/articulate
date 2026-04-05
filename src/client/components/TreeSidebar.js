@@ -27,8 +27,7 @@ const TreeNode = ({ node, docId, versionSlug, depth = 0 }) => {
           : html`<span class="tree-node__toggle tree-node__toggle--empty" />`
         }
         <a class="tree-node__label" href="/${docId}/${versionSlug}/${node.path}" onclick=${handleClick}>
-          ${node.marker ? html`<span class="tree-node__marker">${node.marker}</span>` : null}
-          ${node.caption || node.path}
+          ${node.marker ? `${node.marker}. ` : ''}${node.caption || node.path}
         </a>
       </div>
       ${hasChildren && expanded && html`

@@ -84,7 +84,13 @@ const listRevisions = (db, versionId) =>
   db.prepare('SELECT * FROM revisions WHERE version_id = ? ORDER BY id DESC').all(versionId)
 
 const getTree = (db, revisionId) =>
-  db.prepare('SELECT * FROM tree_entries WHERE revision_id = ? ORDER BY depth, sort_key').all(revisionId)
+  db.prepare(`
+    SELECT t.*, n.caption
+    FROM tree_entries t
+    JOIN nodes n ON n.id = t.node_id
+    WHERE t.revision_id = ?
+    ORDER BY t.depth, t.sort_key
+  `).all(revisionId)
 
 const getChildren = (db, revisionId, parentPath = null) =>
   parentPath === null
