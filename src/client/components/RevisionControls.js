@@ -12,14 +12,33 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
   const [publishMessage, setPublishMessage] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [publishedSeq, setPublishedSeq] = useState(null)
 
   useEffect(() => {
     api.get(`/revisions/${revisionId}`)
-      .then(rev => setRevDetail(rev))
+      .then(rev => {
+        setRevDetail(rev)
+        state.currentRevisionSeq.value = rev.seq
+      })
       .catch(() => setRevDetail(null))
   }, [revisionId])
 
-  const parentId = revDetail?.parent_id
+  // Find the published version's head seq for cross-version comparison
+  useEffect(() => {
+    api.get(`/documents/${docId}`)
+      .then(doc => {
+        if (!doc.published_version || doc.published_version === versionId) return null
+        return api.get(`/documents/${docId}/versions`)
+          .then(versions => {
+            const pub = versions.find(v => v.id === doc.published_version)
+            return pub?.head_rev ? api.get(`/revisions/${pub.head_rev}`) : null
+          })
+      })
+      .then(rev => setPublishedSeq(rev?.seq || null))
+      .catch(() => setPublishedSeq(null))
+  }, [docId, versionId])
+
+  const parentSeq = revDetail?.parent_seq
   const seq = revDetail?.seq
 
   const handlePublish = async () => {
@@ -83,9 +102,15 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
         `
       }
 
-      ${parentId && html`
-        <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/${versionSlug}/diff/${parentId}/${revisionId}`)}>
+      ${parentSeq && html`
+        <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/${versionSlug}/rev/${seq}/diff/${parentSeq}/${seq}`)}>
           Diff
+        </button>
+      `}
+
+      ${publishedSeq && seq && html`
+        <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/${versionSlug}/rev/${seq}/diff/${publishedSeq}/${seq}`)}>
+          Compare to published
         </button>
       `}
 
@@ -123,10 +148,17 @@ const RevisionHistory = ({ revisions, currentId, docId, versionSlug }) => {
   const [selectedA, setSelectedA] = useState(null)
   const [selectedB, setSelectedB] = useState(null)
 
+  const seqById = new Map(revisions.map(r => [r.id, r.seq]))
+
   const handleCompare = () => {
     if (selectedA && selectedB && selectedA !== selectedB) {
-      const sorted = [selectedA, selectedB].sort()
-      navigate(`/${docId}/${versionSlug}/diff/${sorted[0]}/${sorted[1]}`)
+      const a = seqById.get(selectedA)
+      const b = seqById.get(selectedB)
+      if (a && b) {
+        const sorted = [a, b].sort((x, y) => x - y)
+        const revSeq = seqById.get(currentId) || sorted[1]
+        navigate(`/${docId}/${versionSlug}/rev/${revSeq}/diff/${sorted[0]}/${sorted[1]}`)
+      }
     }
   }
 
@@ -160,10 +192,10 @@ const RevisionHistory = ({ revisions, currentId, docId, versionSlug }) => {
               <td class="revision-history__version">${rev.version_id}</td>
               <td class="revision-history__date">${new Date(rev.created_at + 'Z').toLocaleString()}</td>
               <td>
-                ${rev.parent_id && html`
+                ${rev.parent_id && seqById.get(rev.parent_id) && html`
                   <a class="revision-history__diff-link"
-                    href="/${docId}/${versionSlug}/diff/${rev.parent_id}/${rev.id}"
-                    onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${versionSlug}/diff/${rev.parent_id}/${rev.id}`) }}>
+                    href="/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}"
+                    onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}`) }}>
                     diff
                   </a>
                 `}

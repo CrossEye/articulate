@@ -8,6 +8,8 @@ const state = {
   currentDoc: signal(null),
   currentVersion: signal(null),
   currentRevision: signal(null),
+  currentRevisionSeq: signal(null),
+  currentDiff: signal(null),
 
   // Tree structure for current revision
   treeData: signal(null),

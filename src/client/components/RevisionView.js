@@ -8,11 +8,12 @@ import NodeContextView from './NodeContextView.js'
 import RevisionControls from './RevisionControls.js'
 
 const RevisionView = ({ params }) => {
-  const { docId, versionSlug } = params
-  // Everything after docId/versionSlug is the node path
+  const { docId, versionSlug, revSeq } = params
+  // Everything after docId/versionSlug (and optional /rev/:revSeq) is the node path
   const pathParam = params['0'] || null
 
   useEffect(() => {
+    state.currentDiff.value = null
     state.loading.value = true
     Promise.all([
       api.get(`/documents/${docId}`),
@@ -26,25 +27,30 @@ const RevisionView = ({ params }) => {
         return
       }
       state.currentVersion.value = version
-      state.currentRevision.value = version.head_rev
 
-      // Load tree
-      return api.get(`/revisions/${version.head_rev}/tree`).then(tree => {
-        state.treeData.value = tree
-        state.loading.value = false
+      // If a specific revision seq is in the URL, resolve it; otherwise use head
+      const revPromise = revSeq
+        ? api.get(`/documents/${docId}/rev/${revSeq}`).then(rev => rev.id)
+        : Promise.resolve(version.head_rev)
 
-        // If no path specified, navigate to root
-        if (!pathParam && tree.length > 0) {
-          state.currentPath.value = tree[0].path
-        } else {
-          state.currentPath.value = pathParam
-        }
+      return revPromise.then(revId => {
+        state.currentRevision.value = revId
+        return api.get(`/revisions/${revId}/tree`).then(tree => {
+          state.treeData.value = tree
+          state.loading.value = false
+
+          if (!pathParam && tree.length > 0) {
+            state.currentPath.value = tree[0].path
+          } else {
+            state.currentPath.value = pathParam
+          }
+        })
       })
     }).catch(err => {
       state.error.value = err.message
       state.loading.value = false
     })
-  }, [docId, versionSlug])
+  }, [docId, versionSlug, revSeq])
 
   // Update current path when URL changes
   useEffect(() => {

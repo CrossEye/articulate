@@ -5,6 +5,10 @@ import { navigate } from '../router.js'
 const TopBar = () => {
   const doc = state.currentDoc.value
   const version = state.currentVersion.value
+  const revSeq = state.currentRevisionSeq.value
+  const diff = state.currentDiff.value
+
+  const versionHref = doc && version ? `/${doc.id}/${version.id}` : null
 
   return html`
     <header class="top-bar">
@@ -13,13 +17,27 @@ const TopBar = () => {
       </a>
       ${doc && html`
         <span class="top-bar__sep">/</span>
-        <a class="top-bar__doc" href="/${doc.id}" onclick=${(e) => { e.preventDefault(); navigate(`/${doc.id}`) }}>
+        <a class="top-bar__crumb" href="/${doc.id}" onclick=${(e) => { e.preventDefault(); navigate(`/${doc.id}`) }}>
           ${doc.title}
         </a>
       `}
       ${version && html`
         <span class="top-bar__sep">/</span>
-        <span class="top-bar__version">${version.name}</span>
+        ${diff
+          ? html`<a class="top-bar__crumb" href=${versionHref} onclick=${(e) => { e.preventDefault(); navigate(versionHref) }}>${version.name}</a>`
+          : html`<span class="top-bar__current">${version.name}</span>`
+        }
+      `}
+      ${version && revSeq != null && html`
+        <span class="top-bar__sep">/</span>
+        ${diff
+          ? html`<a class="top-bar__crumb" href=${versionHref + '/rev/' + revSeq} onclick=${(e) => { e.preventDefault(); navigate(versionHref + '/rev/' + revSeq) }}>Rev ${revSeq}</a>`
+          : html`<span class="top-bar__current">Rev ${revSeq}</span>`
+        }
+      `}
+      ${diff && html`
+        <span class="top-bar__sep">/</span>
+        <span class="top-bar__current">Diff: Rev ${diff.seqA} \u2192 Rev ${diff.seqB}</span>
       `}
       <div class="top-bar__spacer" />
       <a class="top-bar__link" href="/docs" onclick=${(e) => { e.preventDefault(); navigate('/docs') }}>

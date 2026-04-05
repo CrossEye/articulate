@@ -97,6 +97,13 @@ const removeTreeEntries = (db, revisionId, paths) => {
 const getRevision = (db, id) =>
   db.prepare('SELECT * FROM revisions WHERE id = ?').get(id)
 
+const getRevisionBySeq = (db, docId, seq) =>
+  db.prepare(`
+    SELECT r.* FROM revisions r
+    JOIN versions v ON v.id = r.version_id
+    WHERE v.document_id = ? AND r.seq = ?
+  `).get(docId, seq)
+
 const listRevisions = (db, versionId) =>
   db.prepare('SELECT * FROM revisions WHERE version_id = ? ORDER BY id DESC').all(versionId)
 
@@ -125,6 +132,7 @@ export {
   createInitialRevision,
   removeTreeEntries,
   getRevision,
+  getRevisionBySeq,
   listRevisions,
   getTree,
   getChildren,

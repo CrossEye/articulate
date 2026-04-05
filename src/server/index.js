@@ -38,7 +38,7 @@ app.use('/api/v1/revisions', revisionDetail)
 app.use('/api/v1/revisions', nodesRouter)
 app.use('/api/v1/documents/:docId/import', importRouter)
 app.use('/api/v1/revisions', locksRouter)
-app.use('/api/v1/diff', diffRouter)
+app.use('/api/v1/documents/:docId/diff', diffRouter)
 
 // API root
 app.get('/api/v1', (req, res) => {

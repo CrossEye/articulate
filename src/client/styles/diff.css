@@ -117,6 +117,23 @@
   padding: var(--space-sm) var(--space-md);
   background: var(--color-bg-alt);
   border-bottom: 1px solid var(--color-border);
+  cursor: default;
+}
+
+/* When used as <summary>, style the disclosure triangle */
+summary.diff-entry__header {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.diff-entry__header::before {
+  content: '▸ ';
+  font-size: 0.8em;
+  color: var(--color-text-muted);
+}
+
+details[open] > summary.diff-entry__header::before {
+  content: '▾ ';
 }
 
 .diff-entry__marker {
@@ -176,6 +193,18 @@
 
 .diff-line--equal::before {
   content: '  ';
+}
+
+/* ---- Word-level highlights ---- */
+
+.diff-word--remove {
+  background: #fca5a5;
+  border-radius: 2px;
+}
+
+.diff-word--add {
+  background: #86efac;
+  border-radius: 2px;
 }
 
 /* ---- Inline caption diff ---- */

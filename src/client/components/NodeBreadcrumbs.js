@@ -16,7 +16,7 @@ const NodeBreadcrumbs = ({ path, docId, versionSlug, treeData }) => {
   return html`
     <nav class="breadcrumbs">
       ${crumbs.map((crumb, i) => html`
-        ${i > 0 && html`<span class="breadcrumbs__sep">›</span>`}
+        ${i > 0 && html`<span class="breadcrumbs__sep">\u203A</span>`}
         <a
           class="breadcrumbs__link"
           href="/${docId}/${versionSlug}/${crumb.path}"

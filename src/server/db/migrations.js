@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -145,6 +145,18 @@ const runMigrations = (db) => {
         ORDER BY r.id
       `).all(document_id)
       revs.forEach((r, i) => stmt.run(i + 1, r.id))
+    }
+  }
+  if (currentVersion < 4) {
+    const cols = db.prepare('PRAGMA table_info(documents)').all()
+    if (!cols.some(c => c.name === 'published_version')) {
+      db.exec(`ALTER TABLE documents ADD COLUMN published_version TEXT REFERENCES versions(id)`)
+    }
+    // Backfill: set published_version where not yet set
+    const docs = db.prepare('SELECT id FROM documents WHERE published_version IS NULL').all()
+    for (const { id } of docs) {
+      const v = db.prepare(`SELECT id FROM versions WHERE document_id = ? AND forked_from IS NULL LIMIT 1`).get(id)
+      if (v) db.prepare('UPDATE documents SET published_version = ? WHERE id = ?').run(v.id, id)
     }
   }
   if (currentVersion < SCHEMA_VERSION) {

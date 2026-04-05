@@ -12,9 +12,11 @@ router.get('/', (req, res) => {
 const revisionDetail = Router()
 
 revisionDetail.get('/:revisionId', (req, res) => {
-  const rev = revisions.getRevision(req.app.locals.db, req.params.revisionId)
+  const db = req.app.locals.db
+  const rev = revisions.getRevision(db, req.params.revisionId)
   if (!rev) return res.status(404).json({ error: 'Revision not found' })
-  res.json(rev)
+  const parent = rev.parent_id ? revisions.getRevision(db, rev.parent_id) : null
+  res.json({ ...rev, parent_seq: parent?.seq || null })
 })
 
 // POST /api/v1/versions/:versionId/revisions

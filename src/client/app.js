@@ -13,7 +13,10 @@ import DocsPage from './components/DocsPage.js'
 addRoute('/docs', DocsPage)
 addRoute('/docs/*', DocsPage)
 addRoute('/:docId', DocumentOverview)
-addRoute('/:docId/:versionSlug/diff/:revA/:revB', DiffView)
+addRoute('/:docId/:versionSlug/rev/:revSeq/diff/:seqA/:seqB', DiffView)
+addRoute('/:docId/:versionSlug/diff/:seqA/:seqB', DiffView)
+addRoute('/:docId/:versionSlug/rev/:revSeq', RevisionView)
+addRoute('/:docId/:versionSlug/rev/:revSeq/*', RevisionView)
 addRoute('/:docId/:versionSlug', RevisionView)
 addRoute('/:docId/:versionSlug/*', RevisionView)
 addRoute('/', null) // home

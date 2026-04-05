@@ -6,9 +6,10 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = path.resolve(__dirname, '../..')
 const prod = process.argv.includes('--production')
+const watching = process.argv.includes('--watch')
 
 // JS bundle (also picks up CSS imports via esbuild's loader)
-await esbuild.build({
+const buildOptions = {
   entryPoints: [path.join(__dirname, 'index.js')],
   bundle: true,
   outdir: path.join(PROJECT_ROOT, 'dist'),
@@ -23,7 +24,15 @@ await esbuild.build({
   define: {
     'process.env.NODE_ENV': prod ? '"production"' : '"development"',
   },
-})
+}
+
+if (watching) {
+  const ctx = await esbuild.context(buildOptions)
+  await ctx.watch()
+  console.log('esbuild watching for changes...')
+} else {
+  await esbuild.build(buildOptions)
+}
 
 // Copy static assets to dist/
 await cp(path.join(__dirname, 'index.html'), path.join(PROJECT_ROOT, 'dist', 'index.html'))

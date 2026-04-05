@@ -52,7 +52,8 @@ const diffTrees = (treeA, treeB, getNode) => {
   for (const [path, entryA] of mapA) {
     const entryB = mapB.get(path)
     if (!entryB) {
-      removed.push(entryA)
+      const node = getNode(entryA.node_id)
+      removed.push({ ...entryA, ...node })
     } else if (entryA.node_id === entryB.node_id) {
       unchanged.push(entryA)
     } else {
@@ -71,11 +72,48 @@ const diffTrees = (treeA, treeB, getNode) => {
 
   for (const [path, entryB] of mapB) {
     if (!mapA.has(path)) {
-      added.push(entryB)
+      const node = getNode(entryB.node_id)
+      added.push({ ...entryB, ...node })
     }
   }
 
   return { added, removed, modified, unchanged }
 }
 
-export { diffLines, diffTrees }
+// Word-level diff for highlighting within a changed line pair.
+// Returns an array of { type, value } where type is 'equal', 'add', or 'remove'.
+const diffWords = (a, b) => {
+  const aWords = a.split(/(\s+)/)
+  const bWords = b.split(/(\s+)/)
+
+  const m = aWords.length
+  const n = bWords.length
+  const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1))
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = aWords[i - 1] === bWords[j - 1]
+        ? dp[i - 1][j - 1] + 1
+        : Math.max(dp[i - 1][j], dp[i][j - 1])
+    }
+  }
+
+  const result = []
+  let i = m, j = n
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && aWords[i - 1] === bWords[j - 1]) {
+      result.push({ type: 'equal', value: aWords[i - 1] })
+      i--; j--
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      result.push({ type: 'add', value: bWords[j - 1] })
+      j--
+    } else {
+      result.push({ type: 'remove', value: aWords[i - 1] })
+      i--
+    }
+  }
+
+  return result.reverse()
+}
+
+export { diffLines, diffTrees, diffWords }

@@ -1,26 +1,43 @@
 import { html } from 'htm/preact'
 import { useState, useEffect } from 'preact/hooks'
 import { navigate } from '../router.js'
+import { diffWords } from '../../shared/diff.js'
 import api from '../api.js'
+import { state } from '../state.js'
 
 const DiffView = ({ params }) => {
-  const { docId, versionSlug, revA, revB } = params
+  const { docId, versionSlug, seqA, seqB } = params
   const [diff, setDiff] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Load doc/version context for TopBar breadcrumbs
+  useEffect(() => {
+    Promise.all([
+      api.get(`/documents/${docId}`),
+      api.get(`/documents/${docId}/versions`),
+    ]).then(([doc, versions]) => {
+      state.currentDoc.value = doc
+      const version = versions.find(v => v.id === versionSlug)
+      if (version) state.currentVersion.value = version
+    }).catch(() => {})
+    return () => { state.currentDiff.value = null }
+  }, [docId, versionSlug])
+
   useEffect(() => {
     setLoading(true)
-    api.get(`/diff/${revA}/${revB}`)
+    api.get(`/documents/${docId}/diff/${seqA}/${seqB}`)
       .then(data => {
         setDiff(data)
+        state.currentRevisionSeq.value = data.to.seq
+        state.currentDiff.value = { seqA: data.from.seq, seqB: data.to.seq }
         setLoading(false)
       })
       .catch(err => {
         setError(err.message)
         setLoading(false)
       })
-  }, [revA, revB])
+  }, [docId, seqA, seqB])
 
   if (loading) return html`<main class="main-content"><p>Loading diff...</p></main>`
   if (error) return html`<main class="main-content"><p class="text-muted">Error: ${error}</p></main>`
@@ -32,12 +49,6 @@ const DiffView = ({ params }) => {
   return html`
     <main class="main-content diff-view">
       <div class="diff-view__header">
-        <h2>Diff</h2>
-        <div class="diff-view__revisions">
-          <span class="diff-rev diff-rev--from" title=${from.id}>Rev ${from.seq}</span>
-          <span class="diff-arrow">\u2192</span>
-          <span class="diff-rev diff-rev--to" title=${to.id}>Rev ${to.seq}</span>
-        </div>
         <div class="diff-view__messages">
           ${from.message && html`<div class="diff-msg"><strong>From:</strong> ${from.message}</div>`}
           ${to.message && html`<div class="diff-msg"><strong>To:</strong> ${to.message}</div>`}
@@ -57,13 +68,18 @@ const DiffView = ({ params }) => {
         <section class="diff-section">
           <h3 class="diff-section__title diff-section__title--added">Added</h3>
           ${added.map(entry => html`
-            <div class="diff-entry diff-entry--added">
-              <div class="diff-entry__header">
-                <span class="diff-entry__marker">${entry.marker}.</span>
+            <details class="diff-entry diff-entry--added" open>
+              <summary class="diff-entry__header">
+                ${entry.marker && html`<span class="diff-entry__marker">${entry.marker}.</span>`}
                 <span class="diff-entry__caption">${entry.caption || entry.path}</span>
                 <span class="diff-entry__path">${entry.path}</span>
-              </div>
-            </div>
+              </summary>
+              ${entry.body && html`
+                <div class="diff-entry__body">
+                  <div class="diff-line diff-line--add">${entry.body}</div>
+                </div>
+              `}
+            </details>
           `)}
         </section>
       `}
@@ -72,13 +88,18 @@ const DiffView = ({ params }) => {
         <section class="diff-section">
           <h3 class="diff-section__title diff-section__title--removed">Removed</h3>
           ${removed.map(entry => html`
-            <div class="diff-entry diff-entry--removed">
-              <div class="diff-entry__header">
-                <span class="diff-entry__marker">${entry.marker}.</span>
+            <details class="diff-entry diff-entry--removed">
+              <summary class="diff-entry__header">
+                ${entry.marker && html`<span class="diff-entry__marker">${entry.marker}.</span>`}
                 <span class="diff-entry__caption">${entry.caption || entry.path}</span>
                 <span class="diff-entry__path">${entry.path}</span>
-              </div>
-            </div>
+              </summary>
+              ${entry.body && html`
+                <div class="diff-entry__body">
+                  <div class="diff-line diff-line--remove">${entry.body}</div>
+                </div>
+              `}
+            </details>
           `)}
         </section>
       `}
@@ -92,17 +113,47 @@ const DiffView = ({ params }) => {
         </section>
       `}
 
-      <div class="diff-view__nav">
-        <a href="/${docId}/${versionSlug}" onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${versionSlug}`) }}>
-          Back to document
-        </a>
-      </div>
     </main>
+  `
+}
+
+// Pair adjacent remove+add lines for word-level diffing
+const pairLines = (lines) => {
+  const result = []
+  let i = 0
+  while (i < lines.length) {
+    if (lines[i].type === 'remove' && i + 1 < lines.length && lines[i + 1].type === 'add') {
+      result.push({ type: 'pair', remove: lines[i].value, add: lines[i + 1].value })
+      i += 2
+    } else {
+      result.push(lines[i])
+      i++
+    }
+  }
+  return result
+}
+
+const WordDiffLine = ({ type, text, words }) => {
+  if (!words) {
+    return html`<div class="diff-line diff-line--${type}">${text || '\u00A0'}</div>`
+  }
+  const filterType = type === 'remove' ? 'remove' : 'add'
+  return html`
+    <div class="diff-line diff-line--${type}">${
+      words.map(w =>
+        w.type === 'equal'
+          ? w.value
+          : w.type === filterType
+            ? html`<span class="diff-word diff-word--${w.type}">${w.value}</span>`
+            : null
+      )
+    }</div>
   `
 }
 
 const DiffEntry = ({ entry }) => {
   const { path, from, to, lines, captionChanged } = entry
+  const paired = pairLines(lines)
 
   return html`
     <div class="diff-entry diff-entry--modified">
@@ -117,9 +168,16 @@ const DiffEntry = ({ entry }) => {
         <span class="diff-entry__path">${path}</span>
       </div>
       <div class="diff-entry__body">
-        ${lines.map(line => html`
-          <div class="diff-line diff-line--${line.type}">${line.value || '\u00A0'}</div>
-        `)}
+        ${paired.map(item => {
+          if (item.type === 'pair') {
+            const words = diffWords(item.remove, item.add)
+            return html`
+              <${WordDiffLine} type="remove" text=${item.remove} words=${words} />
+              <${WordDiffLine} type="add" text=${item.add} words=${words} />
+            `
+          }
+          return html`<div class="diff-line diff-line--${item.type}">${item.value || '\u00A0'}</div>`
+        })}
       </div>
     </div>
   `

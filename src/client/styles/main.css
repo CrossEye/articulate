@@ -92,15 +92,20 @@ a:hover {
   margin: 0 var(--space-xs);
 }
 
-.top-bar__doc {
-  color: var(--color-accent);
-  font-size: 0.9rem;
-}
-
-.top-bar__version {
+.top-bar__crumb {
   color: var(--color-accent);
   font-size: 0.85rem;
-  opacity: 0.8;
+  opacity: 0.85;
+}
+
+.top-bar__crumb:hover {
+  opacity: 1;
+}
+
+.top-bar__current {
+  color: var(--color-bg);
+  font-size: 0.85rem;
+  opacity: 0.95;
 }
 
 .top-bar__spacer {
@@ -265,6 +270,11 @@ a:hover {
 
 .breadcrumbs__link {
   color: var(--color-text-muted);
+}
+
+.breadcrumbs__current {
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .breadcrumbs__link:last-child {
