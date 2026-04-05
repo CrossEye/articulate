@@ -1,8 +1,7 @@
-import { signal, effect } from '@preact/signals'
+import { signal, computed } from '@preact/signals'
 
 // Current route state
 const route = signal(parseLocation())
-const params = signal({})
 
 const routes = []
 
@@ -11,7 +10,10 @@ const addRoute = (pattern, component) => {
   const regex = pattern.replace(/:(\w+)/g, (_, key) => {
     keys.push(key)
     return '([^/]+)'
-  }).replace(/\*/g, '(.*)')
+  }).replace(/\*/g, () => {
+    keys.push('0')
+    return '(.*)'
+  })
   routes.push({ regex: new RegExp(`^${regex}$`), keys, component })
 }
 
@@ -25,19 +27,19 @@ const navigate = (path, replace = false) => {
   route.value = parseLocation()
 }
 
-const match = () => {
+// Computed match result — recomputes whenever route changes
+const currentMatch = computed(() => {
   const path = route.value.path
   for (const r of routes) {
     const m = path.match(r.regex)
     if (m) {
       const p = {}
       r.keys.forEach((key, i) => { p[key] = decodeURIComponent(m[i + 1]) })
-      params.value = p
-      return r.component
+      return { component: r.component, params: p }
     }
   }
-  return null
-}
+  return { component: null, params: {} }
+})
 
 function parseLocation() {
   return {
@@ -54,4 +56,4 @@ if (typeof window !== 'undefined') {
   })
 }
 
-export { route, params, routes, addRoute, navigate, match }
+export { route, currentMatch, routes, addRoute, navigate }

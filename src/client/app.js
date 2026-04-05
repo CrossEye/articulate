@@ -1,6 +1,6 @@
 import { html } from 'htm/preact'
 import { useEffect } from 'preact/hooks'
-import { addRoute, match, route, params } from './router.js'
+import { addRoute, currentMatch, navigate } from './router.js'
 import { state } from './state.js'
 import api from './api.js'
 import TopBar from './components/TopBar.js'
@@ -17,8 +17,7 @@ addRoute('/:docId/:versionSlug/*', RevisionView)
 addRoute('/', null) // home
 
 const App = () => {
-  const Component = match()
-  const p = params.value
+  const { component: Component, params: p } = currentMatch.value
 
   // Load document list on mount
   useEffect(() => {
@@ -51,7 +50,7 @@ const Home = () => {
           <h2>Documents</h2>
           <ul class="doc-list">
             ${docs.map(d => html`
-              <li><a href="/${d.id}" onclick=${(e) => { e.preventDefault(); import('./router.js').then(r => r.navigate(`/${d.id}`)) }}>${d.title}</a></li>
+              <li><a href="/${d.id}" onclick=${(e) => { e.preventDefault(); navigate(`/${d.id}`) }}>${d.title}</a></li>
             `)}
           </ul>
         `
