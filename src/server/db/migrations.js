@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -104,6 +104,18 @@ const migration_001 = `
   );
 `
 
+const migration_002 = `
+  DROP TABLE IF EXISTS edit_locks;
+  CREATE TABLE edit_locks (
+    revision_id TEXT NOT NULL,
+    path        TEXT NOT NULL,
+    user_id     TEXT NOT NULL DEFAULT 'anonymous',
+    acquired_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at  TEXT NOT NULL,
+    PRIMARY KEY (revision_id, path)
+  );
+`
+
 const runMigrations = (db) => {
   db.exec('CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT)')
 
@@ -112,6 +124,11 @@ const runMigrations = (db) => {
 
   if (currentVersion < 1) {
     db.exec(migration_001)
+  }
+  if (currentVersion < 2) {
+    db.exec(migration_002)
+  }
+  if (currentVersion < SCHEMA_VERSION) {
     db.prepare('INSERT OR REPLACE INTO _meta (key, value) VALUES (?, ?)')
       .run('schema_version', String(SCHEMA_VERSION))
     console.log(`Database migrated to schema version ${SCHEMA_VERSION}`)

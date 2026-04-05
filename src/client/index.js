@@ -1,4 +1,5 @@
 import './styles/main.css'
+import './styles/editor.css'
 import { render } from 'preact'
 import { html } from 'htm/preact'
 import App from './app.js'

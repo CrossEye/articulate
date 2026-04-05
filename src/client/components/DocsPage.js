@@ -4,6 +4,10 @@ import { state } from '../state.js'
 import { navigate } from '../router.js'
 import api from '../api.js'
 
+// Spaces → + for clean URLs, + → spaces for filesystem/API paths
+const toUrlPath = (p) => p.replace(/\.md$/, '').replace(/ /g, '+')
+const fromUrlPath = (p) => p.replace(/\+/g, ' ')
+
 const DocsSidebar = ({ tree, currentPath, onSelect }) => {
   if (!tree) return null
 
@@ -33,7 +37,7 @@ const DocsTocItem = ({ item, currentPath, onSelect, depth }) => {
         `}
         <a
           class="docs-toc__link"
-          href="/docs/${item.path}"
+          href="/docs/${toUrlPath(item.path)}"
           onclick=${(e) => { e.preventDefault(); onSelect(item.path) }}
         >${item.name}</a>
       </div>
@@ -53,7 +57,7 @@ const DocsPage = ({ params }) => {
   const [content, setContent] = useState(null)
   const [currentPath, setCurrentPath] = useState(null)
 
-  // Derive doc path from URL
+  // Derive doc path from URL (+ encoded)
   const urlPath = params['0'] || null
 
   useEffect(() => {
@@ -65,15 +69,15 @@ const DocsPage = ({ params }) => {
   }, [])
 
   useEffect(() => {
-    const docPath = urlPath || 'index.md'
-    setCurrentPath(urlPath)
+    const docPath = urlPath ? fromUrlPath(urlPath) : 'index.md'
+    setCurrentPath(urlPath ? fromUrlPath(urlPath) : null)
     api.get(`/docs/content/${docPath}`)
       .then(data => setContent(data.html))
       .catch(() => setContent('<p>Page not found.</p>'))
   }, [urlPath])
 
-  const handleSelect = (path) => {
-    navigate(`/docs/${path}`)
+  const handleSelect = (fsPath) => {
+    navigate(`/docs/${toUrlPath(fsPath)}`)
   }
 
   return html`

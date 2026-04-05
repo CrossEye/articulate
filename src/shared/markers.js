@@ -33,8 +33,6 @@ const toRoman = (n) => {
 const nextMarker = (marker) => {
   if (/^\d+$/.test(marker))
     return String(Number(marker) + 1)
-  if (/^s\d+$/.test(marker))
-    return 's' + (Number(marker.slice(1)) + 1)
   if (/^[a-z]$/i.test(marker)) {
     const code = marker.charCodeAt(0)
     const next = String.fromCharCode(code + 1)
@@ -44,6 +42,12 @@ const nextMarker = (marker) => {
     const val = parseRoman(marker)
     const next = toRoman(val + 1)
     return marker === marker.toLowerCase() ? next.toLowerCase() : next
+  }
+  // General prefix + trailing number (ch3 → ch4, s201 → s202, art12 → art13)
+  const prefixMatch = marker.match(/^(.*?)(\d+)$/)
+  if (prefixMatch) {
+    const [, prefix, num] = prefixMatch
+    return prefix + String(Number(num) + 1)
   }
   return marker
 }

@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto'
+import { uuidv7 } from '../../shared/uuidv7.js'
 
 // Create a new revision with its tree entries.
 // If parentId is provided, unchanged entries are copied from the parent revision.
 // `entries` is an array of { path, nodeId, parentPath, sortKey, marker, depth }.
 const createRevision = (db, { versionId, parentId = null, message = null, createdBy = null, entries = [], mergeSources = null }) => {
-  const id = randomUUID()
+  const id = uuidv7()
 
   const insert = db.transaction(() => {
     db.prepare(`
@@ -42,7 +42,7 @@ const createRevision = (db, { versionId, parentId = null, message = null, create
 
 // Create a full revision from scratch (no parent copy, all entries provided)
 const createInitialRevision = (db, { versionId, message = null, createdBy = null, entries }) => {
-  const id = randomUUID()
+  const id = uuidv7()
 
   const insert = db.transaction(() => {
     db.prepare(`
@@ -81,7 +81,7 @@ const getRevision = (db, id) =>
   db.prepare('SELECT * FROM revisions WHERE id = ?').get(id)
 
 const listRevisions = (db, versionId) =>
-  db.prepare('SELECT * FROM revisions WHERE version_id = ? ORDER BY created_at DESC').all(versionId)
+  db.prepare('SELECT * FROM revisions WHERE version_id = ? ORDER BY id DESC').all(versionId)
 
 const getTree = (db, revisionId) =>
   db.prepare('SELECT * FROM tree_entries WHERE revision_id = ? ORDER BY depth, sort_key').all(revisionId)

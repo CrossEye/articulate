@@ -5,6 +5,7 @@ import api from '../api.js'
 import TreeSidebar from './TreeSidebar.js'
 import NodeBreadcrumbs from './NodeBreadcrumbs.js'
 import NodeContextView from './NodeContextView.js'
+import RevisionControls from './RevisionControls.js'
 
 const RevisionView = ({ params }) => {
   const { docId, versionSlug } = params
@@ -64,6 +65,12 @@ const RevisionView = ({ params }) => {
     <div class="revision-view">
       <${TreeSidebar} docId=${docId} versionSlug=${versionSlug} />
       <main class="content-area">
+        ${revisionId && html`
+          <${RevisionControls}
+            revisionId=${revisionId}
+            versionId=${versionSlug}
+          />
+        `}
         ${currentPath && html`
           <${NodeBreadcrumbs}
             path=${currentPath}
