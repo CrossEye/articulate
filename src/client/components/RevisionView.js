@@ -69,6 +69,8 @@ const RevisionView = ({ params }) => {
           <${RevisionControls}
             revisionId=${revisionId}
             versionId=${versionSlug}
+            docId=${docId}
+            versionSlug=${versionSlug}
           />
         `}
         ${currentPath && html`

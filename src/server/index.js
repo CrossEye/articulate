@@ -10,6 +10,7 @@ import revisionsRouter, { revisionDetail } from './routes/revisions.js'
 import nodesRouter from './routes/nodes.js'
 import importRouter from './routes/import.js'
 import locksRouter from './routes/locks.js'
+import diffRouter from './routes/diff.js'
 import { createLiveReload } from './live-reload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -37,6 +38,7 @@ app.use('/api/v1/revisions', revisionDetail)
 app.use('/api/v1/revisions', nodesRouter)
 app.use('/api/v1/documents/:docId/import', importRouter)
 app.use('/api/v1/revisions', locksRouter)
+app.use('/api/v1/diff', diffRouter)
 
 // API root
 app.get('/api/v1', (req, res) => {

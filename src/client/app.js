@@ -6,12 +6,14 @@ import api from './api.js'
 import TopBar from './components/TopBar.js'
 import DocumentOverview from './components/DocumentOverview.js'
 import RevisionView from './components/RevisionView.js'
+import DiffView from './components/DiffView.js'
 import DocsPage from './components/DocsPage.js'
 
 // Register routes
 addRoute('/docs', DocsPage)
 addRoute('/docs/*', DocsPage)
 addRoute('/:docId', DocumentOverview)
+addRoute('/:docId/:versionSlug/diff/:revA/:revB', DiffView)
 addRoute('/:docId/:versionSlug', RevisionView)
 addRoute('/:docId/:versionSlug/*', RevisionView)
 addRoute('/', null) // home
