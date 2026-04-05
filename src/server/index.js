@@ -8,6 +8,7 @@ import documentsRouter from './routes/documents.js'
 import versionsRouter from './routes/versions.js'
 import revisionsRouter, { revisionDetail } from './routes/revisions.js'
 import nodesRouter from './routes/nodes.js'
+import importRouter from './routes/import.js'
 import { createLiveReload } from './live-reload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -16,7 +17,7 @@ const DEV = process.argv.includes('--dev')
 const PORT = process.env.PORT || 3000
 
 const app = express()
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 
 // Database
 const db = createConnection()
@@ -33,6 +34,7 @@ app.use('/api/v1/documents/:docId/versions', versionsRouter)
 app.use('/api/v1/versions/:versionId/revisions', revisionsRouter)
 app.use('/api/v1/revisions', revisionDetail)
 app.use('/api/v1/revisions', nodesRouter)
+app.use('/api/v1/documents/:docId/import', importRouter)
 
 // API root
 app.get('/api/v1', (req, res) => {
