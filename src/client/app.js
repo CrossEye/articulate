@@ -8,12 +8,14 @@ import DocumentOverview from './components/DocumentOverview.js'
 import RevisionView from './components/RevisionView.js'
 import DiffView from './components/DiffView.js'
 import MergeView from './components/MergeView.js'
+import BranchGraph from './components/BranchGraph.js'
 import DocsPage from './components/DocsPage.js'
 
 // Register routes
 addRoute('/docs', DocsPage)
 addRoute('/docs/*', DocsPage)
 addRoute('/:docId/merge', MergeView)
+addRoute('/:docId/history', BranchGraph)
 addRoute('/:docId', DocumentOverview)
 addRoute('/:docId/:versionSlug/rev/:revSeq/diff/:seqA/:seqB', DiffView)
 addRoute('/:docId/:versionSlug/diff/:seqA/:seqB', DiffView)

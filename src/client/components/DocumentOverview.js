@@ -65,6 +65,11 @@ const DocumentOverview = ({ params }) => {
   return html`
     <main class="main-content">
       <h1>${doc.title}</h1>
+      <p>
+        <a href="/${docId}/history" onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/history`) }}>
+          View History Graph
+        </a>
+      </p>
 
       <h2>Versions</h2>
       ${mainVersions.length === 0

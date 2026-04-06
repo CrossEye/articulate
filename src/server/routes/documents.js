@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import * as docs from '../db/documents.js'
-import { getRevisionBySeq } from '../db/revisions.js'
+import { getRevisionBySeq, listAllRevisions } from '../db/revisions.js'
+import { listVersions } from '../db/versions.js'
+import { listTags } from '../db/tags.js'
 
 const router = Router()
 
@@ -21,6 +23,21 @@ router.get('/:docId/rev/:seq', (req, res) => {
   const rev = getRevisionBySeq(req.app.locals.db, req.params.docId, Number(req.params.seq))
   if (!rev) return res.status(404).json({ error: `Revision #${req.params.seq} not found` })
   res.json(rev)
+})
+
+// GET /api/v1/documents/:docId/history — all versions, revisions, and tags for DAG visualization
+router.get('/:docId/history', (req, res) => {
+  const db = req.app.locals.db
+  const { docId } = req.params
+
+  const versions = listVersions(db, docId)
+  const revisions = listAllRevisions(db, docId).map(r => ({
+    ...r,
+    merge_sources: r.merge_sources ? JSON.parse(r.merge_sources) : null,
+  }))
+  const tags = listTags(db, docId)
+
+  res.json({ versions, revisions, tags })
 })
 
 // POST /api/v1/documents

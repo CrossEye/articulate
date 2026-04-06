@@ -214,6 +214,10 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
         ${showHistory ? 'Hide History' : 'History'}
       </button>
 
+      <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/history${seq ? '?rev=' + seq : ''}`)}>
+        Full History
+      </button>
+
       ${!locked && html`
         <div class="revision-controls__save">
           <input class="revision-controls__message" type="text"

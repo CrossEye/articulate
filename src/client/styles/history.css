@@ -1,0 +1,130 @@
+/* ---- Branch graph ---- */
+
+.branch-graph {
+  flex: 1;
+  padding: var(--space-lg) var(--space-xl);
+  overflow: auto;
+}
+
+.branch-graph h1 {
+  margin-bottom: var(--space-md);
+}
+
+.branch-graph__container {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  overflow: auto;
+  max-height: calc(100vh - 160px);
+}
+
+.branch-graph__svg {
+  display: block;
+}
+
+/* ---- Edges ---- */
+
+.branch-graph__edge {
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+}
+
+.branch-graph__edge--merge {
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+/* ---- Nodes ---- */
+
+.branch-graph__node {
+  cursor: pointer;
+}
+
+.branch-graph__node:hover .branch-graph__circle {
+  filter: brightness(1.15);
+}
+
+.branch-graph__node:hover .branch-graph__message {
+  fill: var(--color-text);
+}
+
+.branch-graph__circle {
+  stroke: var(--color-bg);
+  stroke-width: 2;
+  transition: filter 0.15s;
+}
+
+.branch-graph__seq {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--color-text);
+}
+
+.branch-graph__message {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  fill: var(--color-text-muted);
+  transition: fill 0.15s;
+}
+
+.branch-graph__tag {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.branch-graph__tag-bg {
+  fill: #ede9fe;
+  rx: 3;
+}
+
+.branch-graph__tag-text {
+  fill: #5b21b6;
+}
+
+/* ---- Lane labels ---- */
+
+.branch-graph__lane-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--color-text-muted);
+  text-anchor: middle;
+}
+
+/* ---- Current revision highlight ---- */
+
+.branch-graph__current {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-dasharray: 3 2;
+  opacity: 0.8;
+}
+
+/* ---- Published marker ---- */
+
+.branch-graph__published {
+  fill: none;
+  stroke-width: 2;
+}
+
+/* ---- Lane colors ---- */
+
+:root {
+  --lane-0: #3b82f6;
+  --lane-1: #10b981;
+  --lane-2: #f59e0b;
+  --lane-3: #ef4444;
+  --lane-4: #8b5cf6;
+  --lane-5: #06b6d4;
+  --lane-6: #f97316;
+  --lane-7: #14b8a6;
+}
+
+/* ---- Nav link ---- */
+
+.branch-graph__nav {
+  margin-bottom: var(--space-md);
+}

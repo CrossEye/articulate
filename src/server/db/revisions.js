@@ -131,6 +131,14 @@ const getTreeEntry = (db, revisionId, path) =>
 const publishRevision = (db, id) =>
   db.prepare('UPDATE revisions SET published = 1 WHERE id = ?').run(id)
 
+const listAllRevisions = (db, documentId) =>
+  db.prepare(`
+    SELECT r.* FROM revisions r
+    JOIN versions v ON v.id = r.version_id
+    WHERE v.document_id = ?
+    ORDER BY r.seq
+  `).all(documentId)
+
 export {
   createRevision,
   createInitialRevision,
@@ -138,6 +146,7 @@ export {
   getRevision,
   getRevisionBySeq,
   listRevisions,
+  listAllRevisions,
   getTree,
   getChildren,
   getTreeEntry,
