@@ -4091,13 +4091,29 @@ var LANE_COLORS = [
 ];
 var truncate = (s4, n4 = 36) => s4 && s4.length > n4 ? s4.slice(0, n4) + "\u2026" : s4;
 var layoutGraph = (versions, revisions, tags, publishedVersionId) => {
-  const sorted = [...versions].sort((a4, b5) => {
+  const byId = new Map(versions.map((v5) => [v5.id, v5]));
+  const childrenOf = /* @__PURE__ */ new Map();
+  for (const v5 of versions) {
+    if (v5.parent_version_id) {
+      const list = childrenOf.get(v5.parent_version_id) || [];
+      list.push(v5);
+      childrenOf.set(v5.parent_version_id, list);
+    }
+  }
+  const sorted = [];
+  const addWithChildren = (v5) => {
+    sorted.push(v5);
+    const children = (childrenOf.get(v5.id) || []).sort(
+      (a4, b5) => a4.created_at < b5.created_at ? -1 : 1
+    );
+    for (const c4 of children) addWithChildren(c4);
+  };
+  const topLevel = versions.filter((v5) => !v5.parent_version_id).sort((a4, b5) => {
     if (a4.id === publishedVersionId) return -1;
     if (b5.id === publishedVersionId) return 1;
-    if (!a4.forked_from && b5.forked_from) return -1;
-    if (a4.forked_from && !b5.forked_from) return 1;
     return a4.created_at < b5.created_at ? -1 : 1;
   });
+  for (const v5 of topLevel) addWithChildren(v5);
   const laneByVersion = new Map(sorted.map((v5, i4) => [v5.id, i4]));
   const revById = new Map(revisions.map((r4) => [r4.id, r4]));
   const tagsByRevId = /* @__PURE__ */ new Map();
@@ -4222,8 +4238,7 @@ var BranchGraph = ({ params }) => {
               class="branch-graph__lane-label"
               x=${lane.x} y=${16}
               fill=${lane.color}>
-              ${lane.version.name}
-              ${lane.version.kind === "branch" ? " (branch)" : ""}
+              ${lane.version.kind === "branch" ? "\u2514 " : ""}${lane.version.name}
             </text>
           `)}
 

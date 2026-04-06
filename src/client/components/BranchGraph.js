@@ -19,14 +19,32 @@ const truncate = (s, n = 36) =>
 
 // Build layout data from raw API response
 const layoutGraph = (versions, revisions, tags, publishedVersionId) => {
-  // Assign lanes: published/main version first, then others by created_at
-  const sorted = [...versions].sort((a, b) => {
-    if (a.id === publishedVersionId) return -1
-    if (b.id === publishedVersionId) return 1
-    if (!a.forked_from && b.forked_from) return -1
-    if (a.forked_from && !b.forked_from) return 1
-    return a.created_at < b.created_at ? -1 : 1
-  })
+  // Assign lanes: versions first (published first), then branches nested under their parent
+  const byId = new Map(versions.map(v => [v.id, v]))
+  const childrenOf = new Map()
+  for (const v of versions) {
+    if (v.parent_version_id) {
+      const list = childrenOf.get(v.parent_version_id) || []
+      list.push(v)
+      childrenOf.set(v.parent_version_id, list)
+    }
+  }
+  const sorted = []
+  const addWithChildren = (v) => {
+    sorted.push(v)
+    const children = (childrenOf.get(v.id) || []).sort((a, b) =>
+      a.created_at < b.created_at ? -1 : 1
+    )
+    for (const c of children) addWithChildren(c)
+  }
+  const topLevel = versions
+    .filter(v => !v.parent_version_id)
+    .sort((a, b) => {
+      if (a.id === publishedVersionId) return -1
+      if (b.id === publishedVersionId) return 1
+      return a.created_at < b.created_at ? -1 : 1
+    })
+  for (const v of topLevel) addWithChildren(v)
   const laneByVersion = new Map(sorted.map((v, i) => [v.id, i]))
 
   // Build revision lookup
@@ -173,8 +191,7 @@ const BranchGraph = ({ params }) => {
               class="branch-graph__lane-label"
               x=${lane.x} y=${16}
               fill=${lane.color}>
-              ${lane.version.name}
-              ${lane.version.kind === 'branch' ? ' (branch)' : ''}
+              ${lane.version.kind === 'branch' ? '\u2514 ' : ''}${lane.version.name}
             </text>
           `)}
 
