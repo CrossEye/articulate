@@ -1171,8 +1171,9 @@ var api_default = api;
 
 // src/client/components/TopBar.js
 var Wordmark = () => m2`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 52" class="top-bar__wordmark" aria-label="Articulate">
-    <g transform="translate(4, 2) scale(0.26)">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 48" class="top-bar__wordmark" aria-label="Articulate">
+    <!-- Icon: original 200×180 content, scaled to ~44px tall, vertically centered -->
+    <g transform="translate(2, 3) scale(0.232)">
       <rect x="20" y="10" width="160" height="155" rx="12" fill="#eff6ff"/>
       <rect x="35" y="23" width="130" height="130" rx="10" fill="#dbeafe"/>
       <rect x="50" y="37" width="100" height="104" rx="8" fill="#93c5fd"/>
@@ -1181,10 +1182,14 @@ var Wordmark = () => m2`
       <text x="100" y="95" text-anchor="middle" font-family="'Courier New', monospace"
         font-size="22" fill="white" font-weight="bold">A</text>
     </g>
-    <text x="54" y="33" font-family="Georgia, serif" font-size="22" fill="white"
+    <!-- "Articulate" — 26px, vertically centered -->
+    <text x="50" y="24" dominant-baseline="middle"
+      font-family="Georgia, serif" font-size="26" fill="white"
       font-weight="bold" letter-spacing="1">Articulate</text>
-    <text x="55" y="46" font-family="Georgia, serif" font-size="6.5" fill="#93c5fd"
-      letter-spacing="2.5">COLLABORATIVE DOCUMENT EDITING</text>
+    <!-- Tagline — 75% of 26px = ~19.5px, same vertical center -->
+    <text x="218" y="24" dominant-baseline="middle"
+      font-family="Georgia, serif" font-size="19" fill="#93c5fd"
+      letter-spacing="1.5">COLLABORATIVE DOCUMENT EDITING</text>
   </svg>
 `;
 var TopBar = () => {
