@@ -29,6 +29,7 @@ router.post('/', requireAuth, (req, res) => {
 
   const version = db.prepare('SELECT * FROM versions WHERE id = ?').get(versionId)
   if (!version) return res.status(404).json({ error: 'Version not found' })
+  if (version.kind === 'version') return res.status(403).json({ error: 'Cannot edit a version directly; work on a branch instead' })
 
   const parentId = version.head_rev
   const entries = changes

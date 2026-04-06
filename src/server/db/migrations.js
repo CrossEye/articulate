@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 
-const SCHEMA_VERSION = 6
+const SCHEMA_VERSION = 7
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -208,6 +208,25 @@ const runMigrations = (db) => {
         VALUES (?, ?, ?, ?, ?, ?)
       `).run('admin', 'admin', 'Administrator', hash, 'admin', 1)
       console.log('Bootstrap admin created (username: admin, password: changeme)')
+    }
+  }
+  if (currentVersion < 7) {
+    // Add parent_version_id: links a branch to the version/branch it belongs to
+    const cols = db.prepare('PRAGMA table_info(versions)').all()
+    if (!cols.some(c => c.name === 'parent_version_id')) {
+      db.exec(`ALTER TABLE versions ADD COLUMN parent_version_id TEXT REFERENCES versions(id)`)
+    }
+    // Backfill: any version with forked_from that isn't a top-level version
+    // gets kind='branch' and parent_version_id set to the version of the source revision
+    const forks = db.prepare(`
+      SELECT v.id, v.forked_from, r.version_id as source_version_id
+      FROM versions v
+      JOIN revisions r ON r.id = v.forked_from
+      WHERE v.forked_from IS NOT NULL AND v.kind = 'version'
+    `).all()
+    for (const f of forks) {
+      db.prepare('UPDATE versions SET kind = ?, parent_version_id = ? WHERE id = ?')
+        .run('branch', f.source_version_id, f.id)
     }
   }
   if (currentVersion < SCHEMA_VERSION) {

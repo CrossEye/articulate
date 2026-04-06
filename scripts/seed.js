@@ -57,8 +57,8 @@ console.log(`Created ${Object.keys(users).length} users (each password = usernam
 const node = (caption, body, nodeType = 'section') =>
   createNode(db, { body, caption, nodeType })
 
-const forkVersion = (id, name, description, sourceRevId, createdBy) => {
-  createVersion(db, { id, documentId: DOC_ID, name, description, forkedFrom: sourceRevId, createdBy })
+const forkBranch = (id, name, description, sourceRevId, createdBy, parentVersionId) => {
+  createVersion(db, { id, documentId: DOC_ID, name, description, forkedFrom: sourceRevId, createdBy, kind: 'branch', parentVersionId })
   const tree = getTree(db, sourceRevId)
   return createInitialRevision(db, {
     versionId: id,
@@ -174,31 +174,44 @@ console.log(`Rev 1 (seq 1): 2021 charter — ${entries2021.length} nodes, locked
 // Phase 2: Fork for 2026 Revision Commission
 // ============================================================
 
-const rev2 = forkVersion('v2026', 'Version 2026', '2026 Charter Revision Commission working draft', rev1, users.alice)
+// v2026 is a top-level version (kind='version'), not a branch
+createVersion(db, { id: 'v2026', documentId: DOC_ID, name: 'Version 2026', description: '2026 Charter Revision Commission working draft', forkedFrom: rev1, createdBy: users.alice, kind: 'version' })
+const tree2021 = getTree(db, rev1)
+const rev2 = createInitialRevision(db, {
+  versionId: 'v2026', parentId: rev1, message: 'Fork: Version 2026', createdBy: users.alice,
+  entries: tree2021.map(e => ({ path: e.path, nodeId: e.node_id, parentPath: e.parent_path, sortKey: e.sort_key, marker: e.marker, depth: e.depth })),
+})
 console.log('Rev 2: Fork v2026 from v2021')
 
-// Alice updates the preamble to note this is a working revision
-const rev3 = editNode('v2026', rev2, 'root', null, 0, '', 0,
+// Alice works on a branch off v2026 to update the preamble
+const rev3a = forkBranch('alice-preamble', "Alice's Preamble Update", 'Update preamble for 2026 revision', rev2, users.alice, 'v2026')
+const rev3 = editNode('alice-preamble', rev3a, 'root', null, 0, '', 0,
   'Town of Millbrook Charter',
   'Charter of the Town of Millbrook. Originally adopted November 2, 2021. Under revision by the 2026 Charter Revision Commission.',
   'Update preamble for 2026 revision', users.alice)
-console.log('Rev 3: Alice updates preamble')
+// Merge preamble update into v2026
+const preambleTree = getTree(db, rev3)
+const rev3m = mergeRevisions('v2026', rev2, [rev3], preambleTree.map(e => ({
+  path: e.path, nodeId: e.node_id, parentPath: e.parent_path,
+  sortKey: e.sort_key, marker: e.marker, depth: e.depth,
+})), 'Merge preamble update', users.alice)
+console.log('Revs 3: Alice updates preamble via branch, merges to v2026')
 
 // ============================================================
 // Phase 3: Subcommittee branches
 // ============================================================
 
-const rev4 = forkVersion('budget-sub', 'Budget Subcommittee', 'Finance article revisions', rev3, users.bob)
+const rev4 = forkBranch('budget-sub', 'Budget Subcommittee', 'Finance article revisions', rev3m, users.bob, 'v2026')
 addVersionMember(db, 'budget-sub', users.bob, 'editor')
 addVersionMember(db, 'budget-sub', users.carol, 'editor')
 console.log('Rev 4: Fork budget-sub')
 
-const rev5 = forkVersion('personnel-sub', 'Personnel Subcommittee', 'Executive branch revisions', rev3, users.dave)
+const rev5 = forkBranch('personnel-sub', 'Personnel Subcommittee', 'Executive branch revisions', rev3m, users.dave, 'v2026')
 addVersionMember(db, 'personnel-sub', users.dave, 'editor')
 addVersionMember(db, 'personnel-sub', users.edward, 'editor')
 console.log('Rev 5: Fork personnel-sub')
 
-const rev6 = forkVersion('gen-prov-sub', 'General Provisions Subcommittee', 'General provisions and charter review', rev3, users.frannie)
+const rev6 = forkBranch('gen-prov-sub', 'General Provisions Subcommittee', 'General provisions and charter review', rev3m, users.frannie, 'v2026')
 addVersionMember(db, 'gen-prov-sub', users.frannie, 'editor')
 console.log('Rev 6: Fork gen-prov-sub')
 
@@ -207,7 +220,7 @@ console.log('Rev 6: Fork gen-prov-sub')
 // ============================================================
 
 // Bob's working branch
-const rev7 = forkVersion('bob-budget', "Bob's Budget Working", 'Bob working on fiscal year and annual budget', rev4, users.bob)
+const rev7 = forkBranch('bob-budget', "Bob's Budget Working", 'Bob working on fiscal year and annual budget', rev4, users.bob, 'budget-sub')
 
 const rev8 = editNode('bob-budget', rev7, 'root/4000/401', 'root/4000', 0, '4-1', 2,
   'Fiscal Year',
@@ -221,7 +234,7 @@ const rev9 = editNode('bob-budget', rev8, 'root/4000/402', 'root/4000', 1, '4-2'
 console.log('Revs 7-9: Bob edits fiscal year and budget sections')
 
 // Carol's working branch
-const rev10 = forkVersion('carol-budget', "Carol's Budget Working", 'Carol working on capital planning and borrowing', rev4, users.carol)
+const rev10 = forkBranch('carol-budget', "Carol's Budget Working", 'Carol working on capital planning and borrowing', rev4, users.carol, 'budget-sub')
 
 const rev11 = editNode('carol-budget', rev10, 'root/4000/403', 'root/4000', 2, '4-3', 2,
   'Capital Planning',
@@ -254,7 +267,7 @@ console.log('Tagged rev 13: budget-ready-for-review')
 // ============================================================
 
 // Dave's working branch
-const rev14 = forkVersion('dave-personnel', "Dave's Personnel Working", 'Board of Selectmen revisions', rev5, users.dave)
+const rev14 = forkBranch('dave-personnel', "Dave's Personnel Working", 'Board of Selectmen revisions', rev5, users.dave, 'personnel-sub')
 
 const rev15 = editNode('dave-personnel', rev14, 'root/3000/301', 'root/3000', 0, '3-1', 2,
   'Board of Selectmen',
@@ -268,7 +281,7 @@ const rev16 = editNode('dave-personnel', rev15, 'root/3000/302', 'root/3000', 1,
 console.log('Revs 14-16: Dave adds term limits and supermajority requirement')
 
 // Edward's working branch
-const rev17 = forkVersion('edward-personnel', "Edward's Personnel Working", 'Appointments and new ethics section', rev5, users.edward)
+const rev17 = forkBranch('edward-personnel', "Edward's Personnel Working", 'Appointments and new ethics section', rev5, users.edward, 'personnel-sub')
 
 const rev18 = editNode('edward-personnel', rev17, 'root/3000/303', 'root/3000', 2, '3-3', 2,
   'Appointments',
@@ -292,7 +305,7 @@ console.log('Tagged rev 19: personnel-ready-for-review')
 // ============================================================
 
 // Frannie's working branch (not yet merged back)
-const rev20 = forkVersion('frannie-genprov', "Frannie's Working", 'General provisions updates', rev6, users.frannie)
+const rev20 = forkBranch('frannie-genprov', "Frannie's Working", 'General provisions updates', rev6, users.frannie, 'gen-prov-sub')
 
 const rev21 = editNode('frannie-genprov', rev20, 'root/5000/501', 'root/5000', 0, '5-1', 2,
   'Severability',

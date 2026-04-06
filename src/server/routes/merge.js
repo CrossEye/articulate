@@ -143,6 +143,11 @@ router.post('/commit', requireAuth, (req, res) => {
     return res.status(404).json({ error: 'Target version not found' })
   }
 
+  // Merging into a top-level version requires admin
+  if (targetVersion.kind === 'version' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can merge into a top-level version' })
+  }
+
   const revId = revisions.createInitialRevision(db, {
     versionId: targetVersionId,
     parentId: targetVersion.head_rev,

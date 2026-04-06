@@ -1,8 +1,18 @@
 import { Router } from 'express'
 import * as revisions from '../db/revisions.js'
+import { getVersion } from '../db/versions.js'
 import { createNode, getNode } from '../db/nodes.js'
 
 const router = Router({ mergeParams: true })
+
+// Check that the revision belongs to a branch, not a top-level version
+const requireBranch = (db, revisionId) => {
+  const rev = revisions.getRevision(db, revisionId)
+  if (!rev) return 'Revision not found'
+  const ver = getVersion(db, rev.version_id)
+  if (ver?.kind === 'version') return 'Cannot edit a version directly; work on a branch instead'
+  return null
+}
 
 // GET /api/v1/revisions/:revisionId/tree
 router.get('/:revisionId/tree', (req, res) => {
@@ -78,6 +88,9 @@ router.put('/:revisionId/nodes/*nodePath', (req, res) => {
   const nodePath = [].concat(req.params.nodePath).join('/')
   const { body, caption, metadata } = req.body
 
+  const branchErr = requireBranch(db, revisionId)
+  if (branchErr) return res.status(403).json({ error: branchErr })
+
   const entry = revisions.getTreeEntry(db, revisionId, nodePath)
   if (!entry) return res.status(404).json({ error: 'Node not found at path' })
 
@@ -121,6 +134,9 @@ router.post('/:revisionId/children/*nodePath', (req, res) => {
   const parentPath = [].concat(req.params.nodePath).join('/')
   const { body, caption = '', marker, nodeType = 'section', metadata } = req.body
 
+  const branchErr = requireBranch(db, revisionId)
+  if (branchErr) return res.status(403).json({ error: branchErr })
+
   if (!body || !marker) return res.status(400).json({ error: 'body and marker are required' })
 
   const parentEntry = revisions.getTreeEntry(db, revisionId, parentPath)
@@ -156,6 +172,9 @@ router.delete('/:revisionId/nodes/*nodePath', (req, res) => {
   const db = req.app.locals.db
   const { revisionId } = req.params
   const nodePath = [].concat(req.params.nodePath).join('/')
+
+  const branchErr = requireBranch(db, revisionId)
+  if (branchErr) return res.status(403).json({ error: branchErr })
 
   const entry = revisions.getTreeEntry(db, revisionId, nodePath)
   if (!entry) return res.status(404).json({ error: 'Node not found at path' })

@@ -1,8 +1,8 @@
-const createVersion = (db, { id, documentId, name, description = null, createdBy = null, forkedFrom = null, kind = 'version' }) => {
+const createVersion = (db, { id, documentId, name, description = null, createdBy = null, forkedFrom = null, kind = 'version', parentVersionId = null }) => {
   db.prepare(`
-    INSERT INTO versions (id, document_id, name, description, created_by, forked_from, kind)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, documentId, name, description, createdBy, forkedFrom, kind)
+    INSERT INTO versions (id, document_id, name, description, created_by, forked_from, kind, parent_version_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, documentId, name, description, createdBy, forkedFrom, kind, parentVersionId)
 }
 
 const getVersion = (db, id) =>
@@ -44,4 +44,7 @@ const lockVersion = (db, id) =>
 const unlockVersion = (db, id) =>
   db.prepare('UPDATE versions SET locked = 0 WHERE id = ?').run(id)
 
-export { createVersion, getVersion, listVersions, updateVersion, lockVersion, unlockVersion, addVersionMember, getVersionMembers }
+const listBranches = (db, parentVersionId) =>
+  db.prepare('SELECT * FROM versions WHERE parent_version_id = ? ORDER BY created_at').all(parentVersionId)
+
+export { createVersion, getVersion, listVersions, updateVersion, lockVersion, unlockVersion, addVersionMember, getVersionMembers, listBranches }

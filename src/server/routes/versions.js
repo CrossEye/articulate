@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import * as versions from '../db/versions.js'
 import { createInitialRevision, getTree, getRevision, getRevisionBySeq } from '../db/revisions.js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, requireAdmin } from '../middleware/auth.js'
 
 const router = Router({ mergeParams: true })
 
@@ -17,14 +17,27 @@ router.get('/:versionId', (req, res) => {
   res.json(version)
 })
 
+// GET /api/v1/documents/:docId/versions/:versionId/branches
+router.get('/:versionId/branches', (req, res) => {
+  const db = req.app.locals.db
+  const branches = versions.listBranches(db, req.params.versionId)
+  res.json(branches)
+})
+
 // POST /api/v1/documents/:docId/versions
 // body: { id, name, description?, forkedFrom?, forkedFromSeq?, kind? }
+// kind defaults to 'branch'; creating a top-level 'version' requires admin
 router.post('/', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { docId } = req.params
-  const { id, name, description, forkedFrom, forkedFromSeq, kind = 'version' } = req.body
+  const { id, name, description, forkedFrom, forkedFromSeq, kind = 'branch' } = req.body
   if (!id || !name) return res.status(400).json({ error: 'id and name are required' })
   if (kind !== 'version' && kind !== 'branch') return res.status(400).json({ error: 'kind must be "version" or "branch"' })
+
+  // Creating a top-level version requires admin
+  if (kind === 'version' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can create top-level versions' })
+  }
 
   // Resolve fork source: accept either revision ID or seq number
   let forkRevId = forkedFrom
@@ -34,6 +47,13 @@ router.post('/', requireAuth, (req, res) => {
     forkRevId = rev.id
   }
 
+  // Determine parent_version_id: the version/branch that the fork source revision belongs to
+  let parentVersionId = null
+  if (kind === 'branch' && forkRevId) {
+    const sourceRev = getRevision(db, forkRevId)
+    if (sourceRev) parentVersionId = sourceRev.version_id
+  }
+
   versions.createVersion(db, {
     id,
     documentId: docId,
@@ -41,6 +61,7 @@ router.post('/', requireAuth, (req, res) => {
     description,
     forkedFrom: forkRevId,
     kind,
+    parentVersionId,
   })
 
   // If forking from an existing revision, create an initial revision with the same tree
