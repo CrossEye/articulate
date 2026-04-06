@@ -582,7 +582,55 @@ Reframe the system so that **versions** are stable trunks and **branches** are w
 **Dependencies**: Milestone 3 (rendering), Milestone 5 (diff rendering for comparison exports).
 
 
-### Milestone 11: Polish & Hardening (1-2 weeks) ###
+### Milestone 11: Workflow Pipeline & Policy Manual Support (2 weeks) ###
+
+Add workflow stages to branches so the system can model structured approval processes — not just the freeform charter revision workflow, but also the more rigid pipeline used by policy manuals (draft → committee review → first reading → second reading → approved/rejected).
+
+**Schema changes (Migration 8):**
+- Add `workflow_status` column to `versions` — nullable TEXT, default NULL. Values: `draft`, `committee-review`, `first-reading`, `second-reading`, `approved`, `rejected`. NULL means no workflow (freeform, as today). Only meaningful for `kind = 'branch'`.
+- Add `workflow_log` table: `(id, version_id, from_status, to_status, changed_by, note, created_at)` — an append-only audit trail of status transitions.
+- Add `metadata` JSON column to `versions` — for branch-level metadata such as "scope" (e.g., which subtree this branch targets), review notes, due dates.
+
+**Server: Workflow transitions:**
+- New endpoint: `PATCH /versions/:id/workflow` with `{ status, note }`.
+- Enforce valid transitions: `draft → committee-review → first-reading → second-reading → approved|rejected`. Allow sending back: `committee-review → draft`, `first-reading → draft|committee-review`, `second-reading → draft|committee-review`.
+- Permission rules per stage:
+  - `draft`: branch creator and admins can edit content and advance to `committee-review`.
+  - `committee-review`: version members with editor role can edit; admins or version owners advance to `first-reading`.
+  - `first-reading`, `second-reading`: content is frozen (no edits); admins advance, send back, or (at second-reading) approve/reject.
+  - `approved`: triggers merge into parent version (admin confirmation still required).
+- When a branch is in a reading stage, the readonly banner should explain why ("This branch is in first reading — content is frozen").
+
+**Server: Branch scoping (optional metadata):**
+- A branch's `metadata.scope` can specify a subtree path (e.g., `root/1000/1331`). This is advisory — it doesn't enforce anything at the data level, but the UI uses it to focus the tree sidebar and highlight the relevant section.
+
+**Client: Workflow UI:**
+- Branch view shows current workflow status as a prominent badge/banner below the branch name.
+- Workflow controls: "Advance to [next stage]" and "Send back to [previous stage]" buttons, visible based on user role and current status.
+- Status transition requires a note (shown in the workflow log).
+- Workflow history panel: timeline of status changes with who/when/why.
+
+**Client: Active Branches Dashboard:**
+- New route: `/:docId/dashboard` (or integrate into DocumentOverview).
+- Shows all active branches grouped by workflow stage: "In Draft (3)", "In Committee Review (1)", "First Reading (2)", etc.
+- Each entry shows: branch name, scope summary (which policy), who's working on it, last activity.
+- Filters by stage, assignee.
+- This is the natural landing page for a policy manual workflow, where the question is "what's in flight?" rather than "show me the whole tree."
+
+**Client: Policy metadata on nodes:**
+- Display `nodes.metadata` fields in the node view when present: adoption date, last revised, legal references, review schedule.
+- Editable in a collapsible metadata panel below the node body when editing.
+- No schema change needed — `nodes.metadata` already exists as a JSON blob.
+
+**Seed script: Policy manual example:**
+- Add a second document: a small school district policy manual with ~10 policies across 2-3 categories.
+- Create a few branches at different workflow stages to demonstrate the pipeline.
+- One branch in `draft` (Superintendent writing a new technology policy), one in `committee-review` (Policy Committee reviewing a personnel update), one in `first-reading` (Board considering a finance policy change).
+
+**Dependencies**: Milestone 9 (branch-centric model), Milestone 8 (auth).
+
+
+### Milestone 12: Polish & Hardening (1-2 weeks) ###
 
 - Error handling throughout
 - Loading states, optimistic UI
