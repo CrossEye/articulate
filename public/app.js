@@ -2999,6 +2999,7 @@ var SubtreeNode_default = SubtreeNode;
 
 // src/client/components/RevisionControls.js
 var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = false, viewingHistory = false }) => {
+  const [showActions, setShowActions] = d2(false);
   const [showPublish, setShowPublish] = d2(false);
   const [showHistory, setShowHistory] = d2(false);
   const [showFork, setShowFork] = d2(false);
@@ -3012,6 +3013,7 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = 
   const [busy, setBusy] = d2(false);
   const [publishedSeq, setPublishedSeq] = d2(null);
   const [tags, setTags] = d2([]);
+  const panelRef = A2(null);
   y2(() => {
     api_default.get(`/revisions/${revisionId}`).then((rev) => {
       setRevDetail(rev);
@@ -3030,6 +3032,32 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = 
       });
     }).then((rev) => setPublishedSeq(rev?.seq || null)).catch(() => setPublishedSeq(null));
   }, [docId, versionId]);
+  y2(() => {
+    if (!showActions) return;
+    const handler = (e4) => {
+      if (panelRef.current && !panelRef.current.contains(e4.target)) {
+        setShowActions(false);
+        setShowPublish(false);
+        setShowFork(false);
+        setShowTag(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showActions]);
+  y2(() => {
+    if (!showActions) return;
+    const handler = (e4) => {
+      if (e4.key === "Escape") {
+        setShowActions(false);
+        setShowPublish(false);
+        setShowFork(false);
+        setShowTag(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [showActions]);
   const parentSeq = revDetail?.parent_seq;
   const seq = revDetail?.seq;
   const version = state.currentVersion.value;
@@ -3053,9 +3081,7 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = 
         message: message.trim(),
         changes: []
       });
-      if (result.id) {
-        state.currentRevision.value = result.id;
-      }
+      if (result.id) state.currentRevision.value = result.id;
       setMessage("");
     } catch (err) {
       alert(err.message);
@@ -3092,10 +3118,7 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = 
     if (!tagName.trim()) return;
     setBusy(true);
     try {
-      await api_default.post(`/documents/${docId}/tags`, {
-        name: tagName.trim(),
-        revisionId
-      });
+      await api_default.post(`/documents/${docId}/tags`, { name: tagName.trim(), revisionId });
       setShowTag(false);
       setTagName("");
       const updated = await api_default.get(`/documents/${docId}/tags`);
@@ -3106,102 +3129,117 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = 
     setBusy(false);
   };
   return m2`
-    <div class="revision-controls">
-      <span class="revision-controls__id" title=${revisionId}>
-        Rev ${seq || "?"}
-      </span>
-      ${revTags.map((t5) => m2`<span class="tag-badge" key=${t5.name}>${t5.name}</span>`)}
+    <div class="rev-strip" ref=${panelRef}>
 
-      ${locked && m2`<span class="status-badge status-badge--locked">Locked</span>`}
-
-      ${!readOnly && !locked && !showPublish && m2`
-        <button class="btn btn--sm" onclick=${() => setShowPublish(true)}>Publish</button>
-      `}
-      ${!readOnly && showPublish && m2`
-        <div class="revision-controls__publish">
-          <input class="revision-controls__message" type="text"
-            placeholder="Describe this revision..."
-            value=${publishMessage}
-            onInput=${(e4) => setPublishMessage(e4.target.value)}
-            onKeyDown=${(e4) => e4.key === "Enter" && handlePublish()}
-            style="width: 280px" />
-          <button class="btn btn--primary btn--sm" onclick=${handlePublish}
-            disabled=${busy || !publishMessage.trim()}>Confirm Publish</button>
-          <button class="btn btn--sm" onclick=${() => setShowPublish(false)}>Cancel</button>
-        </div>
-      `}
-
-      ${parentSeq && m2`
-        <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/${versionSlug}/rev/${seq}/diff/${parentSeq}/${seq}`)}>
-          Diff
+      <!-- Always-visible strip -->
+      <div class="rev-strip__bar">
+        <span class="rev-strip__id" title=${revisionId}>Rev ${seq || "?"}</span>
+        ${revTags.map((t5) => m2`<span class="tag-badge" key=${t5.name}>${t5.name}</span>`)}
+        ${locked && m2`<span class="status-badge status-badge--locked">Locked</span>`}
+        <button class="rev-strip__toggle ${showActions ? "rev-strip__toggle--active" : ""}"
+          onclick=${() => setShowActions(!showActions)}
+          title=${showActions ? "Hide actions" : "Show actions"}>
+          ≡ Actions
         </button>
-      `}
-
-      ${publishedSeq && seq && m2`
-        <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/${versionSlug}/rev/${seq}/diff/${publishedSeq}/${seq}`)}>
-          Compare to published
-        </button>
-      `}
-
-      ${!showFork ? m2`<button class="btn btn--sm" onclick=${() => setShowFork(true)}>Fork</button>` : m2`
-          <div class="branch-form branch-form--inline">
-            <input class="branch-form__input" type="text" placeholder="Branch name..."
-              value=${forkName} onInput=${(e4) => setForkName(e4.target.value)}
-              onKeyDown=${(e4) => e4.key === "Enter" && handleFork()} />
-            <button class="btn btn--primary btn--sm" onclick=${handleFork}
-              disabled=${busy || !forkName.trim()}>Create</button>
-            <button class="btn btn--sm" onclick=${() => setShowFork(false)}>Cancel</button>
+        ${!readOnly && !locked && m2`
+          <div class="rev-strip__save">
+            <input class="rev-strip__message" type="text"
+              placeholder="Revision note…"
+              value=${message}
+              onInput=${(e4) => setMessage(e4.target.value)}
+              onKeyDown=${(e4) => e4.key === "Enter" && handleNewRevision()} />
+            <button class="btn btn--sm" onclick=${handleNewRevision}
+              disabled=${busy || !message.trim()}>Save</button>
           </div>
         `}
+      </div>
 
-      ${!showTag ? m2`<button class="btn btn--sm" onclick=${() => setShowTag(true)}>Tag</button>` : m2`
-          <div class="branch-form branch-form--inline">
-            <input class="branch-form__input" type="text" placeholder="Tag name..."
-              value=${tagName} onInput=${(e4) => setTagName(e4.target.value)}
-              onKeyDown=${(e4) => e4.key === "Enter" && handleTag()} />
-            <button class="btn btn--primary btn--sm" onclick=${handleTag}
-              disabled=${busy || !tagName.trim()}>Create</button>
-            <button class="btn btn--sm" onclick=${() => setShowTag(false)}>Cancel</button>
+      <!-- Expandable actions panel -->
+      ${showActions && m2`
+        <div class="rev-strip__panel">
+
+          ${!readOnly && !locked && m2`
+            <div class="rev-strip__group">
+              ${!showPublish ? m2`<button class="btn btn--sm" onclick=${() => setShowPublish(true)}>Publish…</button>` : m2`
+                  <div class="branch-form">
+                    <input class="branch-form__input" type="text"
+                      placeholder="Describe this revision…"
+                      value=${publishMessage}
+                      onInput=${(e4) => setPublishMessage(e4.target.value)}
+                      onKeyDown=${(e4) => e4.key === "Enter" && handlePublish()} />
+                    <button class="btn btn--primary btn--sm" onclick=${handlePublish}
+                      disabled=${busy || !publishMessage.trim()}>Confirm</button>
+                    <button class="btn btn--sm" onclick=${() => setShowPublish(false)}>Cancel</button>
+                  </div>
+                `}
+            </div>
+          `}
+
+          <div class="rev-strip__group">
+            ${parentSeq && m2`
+              <button class="btn btn--sm"
+                onclick=${() => navigate2(`/${docId}/${versionSlug}/rev/${seq}/diff/${parentSeq}/${seq}`)}>
+                Diff from parent
+              </button>
+            `}
+            ${publishedSeq && seq && m2`
+              <button class="btn btn--sm"
+                onclick=${() => navigate2(`/${docId}/${versionSlug}/rev/${seq}/diff/${publishedSeq}/${seq}`)}>
+                Compare to published
+              </button>
+            `}
+            <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/history${seq ? "?rev=" + seq : ""}`)}>
+              Full history graph
+            </button>
           </div>
-        `}
 
-      ${version?.kind === "branch" && seq && m2`
-        <button class="btn btn--sm" onclick=${() => {
+          <div class="rev-strip__group">
+            ${!showFork ? m2`<button class="btn btn--sm" onclick=${() => setShowFork(true)}>Fork branch…</button>` : m2`
+                <div class="branch-form">
+                  <input class="branch-form__input" type="text" placeholder="Branch name…"
+                    value=${forkName} onInput=${(e4) => setForkName(e4.target.value)}
+                    onKeyDown=${(e4) => e4.key === "Enter" && handleFork()} />
+                  <button class="btn btn--primary btn--sm" onclick=${handleFork}
+                    disabled=${busy || !forkName.trim()}>Create</button>
+                  <button class="btn btn--sm" onclick=${() => setShowFork(false)}>Cancel</button>
+                </div>
+              `}
+            ${!showTag ? m2`<button class="btn btn--sm" onclick=${() => setShowTag(true)}>Tag…</button>` : m2`
+                <div class="branch-form">
+                  <input class="branch-form__input" type="text" placeholder="Tag name…"
+                    value=${tagName} onInput=${(e4) => setTagName(e4.target.value)}
+                    onKeyDown=${(e4) => e4.key === "Enter" && handleTag()} />
+                  <button class="btn btn--primary btn--sm" onclick=${handleTag}
+                    disabled=${busy || !tagName.trim()}>Create</button>
+                  <button class="btn btn--sm" onclick=${() => setShowTag(false)}>Cancel</button>
+                </div>
+              `}
+            ${version?.kind === "branch" && seq && m2`
+              <button class="btn btn--sm" onclick=${() => {
     const params = new URLSearchParams({ from: seq });
     if (publishedSeq) params.set("into", publishedSeq);
     if (versionId) params.set("target", versionId);
     navigate2(`/${docId}/merge?${params}`);
-  }}>Merge</button>
-      `}
+  }}>Merge…</button>
+            `}
+          </div>
 
-      <button class="btn btn--sm" onclick=${handleShowHistory}>
-        ${showHistory ? "Hide History" : "History"}
-      </button>
+          <div class="rev-strip__group">
+            <button class="btn btn--sm" onclick=${handleShowHistory}>
+              ${showHistory ? "Hide revision list" : "Revision list"}
+            </button>
+          </div>
 
-      <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/history${seq ? "?rev=" + seq : ""}`)}>
-        Full History
-      </button>
-
-      ${!readOnly && !locked && m2`
-        <div class="revision-controls__save">
-          <input class="revision-controls__message" type="text"
-            placeholder="Revision note..."
-            value=${message}
-            onInput=${(e4) => setMessage(e4.target.value)}
-            onKeyDown=${(e4) => e4.key === "Enter" && handleNewRevision()} />
-          <button class="btn btn--sm" onclick=${handleNewRevision}
-            disabled=${busy || !message.trim()}>Save Revision</button>
+          ${showHistory && m2`
+            <${RevisionHistory}
+              revisions=${revisions}
+              currentId=${revisionId}
+              docId=${docId}
+              versionSlug=${versionSlug}
+              tags=${tags}
+            />
+          `}
         </div>
-      `}
-
-      ${showHistory && m2`
-        <${RevisionHistory}
-          revisions=${revisions}
-          currentId=${revisionId}
-          docId=${docId}
-          versionSlug=${versionSlug}
-          tags=${tags}
-        />
       `}
     </div>
   `;
@@ -3238,13 +3276,7 @@ var RevisionHistory = ({ revisions, currentId, docId, versionSlug, tags }) => {
       <table class="revision-history__table">
         <thead>
           <tr>
-            <th>A</th>
-            <th>B</th>
-            <th>#</th>
-            <th>Message</th>
-            <th>Tags</th>
-            <th>Date</th>
-            <th></th>
+            <th>A</th><th>B</th><th>#</th><th>Message</th><th>Tags</th><th>Date</th><th></th>
           </tr>
         </thead>
         <tbody>
