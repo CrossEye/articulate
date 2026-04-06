@@ -220,7 +220,7 @@ console.log('Rev 6: Fork gen-prov-sub')
 // ============================================================
 
 // Bob's working branch
-const rev7 = forkBranch('bob-budget', "Bob's Budget Working", 'Bob working on fiscal year and annual budget', rev4, users.bob, 'budget-sub')
+const rev7 = forkBranch('bob-budget', "Bob's Budget Branch", 'Bob working on fiscal year and annual budget', rev4, users.bob, 'budget-sub')
 
 const rev8 = editNode('bob-budget', rev7, 'root/4000/401', 'root/4000', 0, '4-1', 2,
   'Fiscal Year',
@@ -234,7 +234,7 @@ const rev9 = editNode('bob-budget', rev8, 'root/4000/402', 'root/4000', 1, '4-2'
 console.log('Revs 7-9: Bob edits fiscal year and budget sections')
 
 // Carol's working branch
-const rev10 = forkBranch('carol-budget', "Carol's Budget Working", 'Carol working on capital planning and borrowing', rev4, users.carol, 'budget-sub')
+const rev10 = forkBranch('carol-budget', "Carol's Budget Branch", 'Carol working on capital planning and borrowing', rev4, users.carol, 'budget-sub')
 
 const rev11 = editNode('carol-budget', rev10, 'root/4000/403', 'root/4000', 2, '4-3', 2,
   'Capital Planning',
@@ -267,7 +267,7 @@ console.log('Tagged rev 13: budget-ready-for-review')
 // ============================================================
 
 // Dave's working branch
-const rev14 = forkBranch('dave-personnel', "Dave's Personnel Working", 'Board of Selectmen revisions', rev5, users.dave, 'personnel-sub')
+const rev14 = forkBranch('dave-personnel', "Dave's Personnel Branch", 'Board of Selectmen revisions', rev5, users.dave, 'personnel-sub')
 
 const rev15 = editNode('dave-personnel', rev14, 'root/3000/301', 'root/3000', 0, '3-1', 2,
   'Board of Selectmen',
@@ -281,7 +281,7 @@ const rev16 = editNode('dave-personnel', rev15, 'root/3000/302', 'root/3000', 1,
 console.log('Revs 14-16: Dave adds term limits and supermajority requirement')
 
 // Edward's working branch
-const rev17 = forkBranch('edward-personnel', "Edward's Personnel Working", 'Appointments and new ethics section', rev5, users.edward, 'personnel-sub')
+const rev17 = forkBranch('edward-personnel', "Edward's Personnel Branch", 'Appointments and new ethics section', rev5, users.edward, 'personnel-sub')
 
 const rev18 = editNode('edward-personnel', rev17, 'root/3000/303', 'root/3000', 2, '3-3', 2,
   'Appointments',
@@ -305,7 +305,7 @@ console.log('Tagged rev 19: personnel-ready-for-review')
 // ============================================================
 
 // Frannie's working branch (not yet merged back)
-const rev20 = forkBranch('frannie-genprov', "Frannie's Working", 'General provisions updates', rev6, users.frannie, 'gen-prov-sub')
+const rev20 = forkBranch('frannie-genprov', "Frannie's Branch", 'General provisions updates', rev6, users.frannie, 'gen-prov-sub')
 
 const rev21 = editNode('frannie-genprov', rev20, 'root/5000/501', 'root/5000', 0, '5-1', 2,
   'Severability',
