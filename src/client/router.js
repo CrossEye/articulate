@@ -3,6 +3,9 @@ import { signal, computed } from '@preact/signals'
 // Current route state
 const route = signal(parseLocation())
 
+// Previous path — for "return after login" and "close docs"
+const previousPath = signal(null)
+
 const routes = []
 
 const addRoute = (pattern, component) => {
@@ -19,9 +22,11 @@ const addRoute = (pattern, component) => {
 
 const navigate = (path, replace = false) => {
   if (path === location.pathname) return
+  const prev = location.pathname + location.search
   if (replace) {
     history.replaceState(null, '', path)
   } else {
+    previousPath.value = prev
     history.pushState(null, '', path)
   }
   route.value = parseLocation()
@@ -56,4 +61,4 @@ if (typeof window !== 'undefined') {
   })
 }
 
-export { route, currentMatch, routes, addRoute, navigate }
+export { route, currentMatch, routes, addRoute, navigate, previousPath }

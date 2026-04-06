@@ -1039,6 +1039,7 @@ function F() {
 
 // src/client/router.js
 var route = y3(parseLocation());
+var previousPath = y3(null);
 var routes = [];
 var addRoute = (pattern, component) => {
   const keys = [];
@@ -1053,9 +1054,11 @@ var addRoute = (pattern, component) => {
 };
 var navigate2 = (path, replace = false) => {
   if (path === location.pathname) return;
+  const prev = location.pathname + location.search;
   if (replace) {
     history.replaceState(null, "", path);
   } else {
+    previousPath.value = prev;
     history.pushState(null, "", path);
   }
   route.value = parseLocation();
@@ -1146,7 +1149,8 @@ var request = async (path, options = {}) => {
     if (res.status === 401 && !path.startsWith("/auth/me")) {
       const loc = location.pathname;
       if (loc !== "/login" && !loc.startsWith("/invite/")) {
-        location.href = "/login";
+        const next = encodeURIComponent(loc + location.search);
+        location.href = `/login?next=${next}`;
       }
     }
     throw err;
@@ -1163,12 +1167,31 @@ var api = {
 var api_default = api;
 
 // src/client/components/TopBar.js
+var Wordmark = () => m2`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 52" class="top-bar__wordmark" aria-label="Articulate">
+    <g transform="translate(4, 2) scale(0.26)">
+      <rect x="20" y="10" width="160" height="155" rx="12" fill="#eff6ff"/>
+      <rect x="35" y="23" width="130" height="130" rx="10" fill="#dbeafe"/>
+      <rect x="50" y="37" width="100" height="104" rx="8" fill="#93c5fd"/>
+      <rect x="65" y="51" width="70" height="78" rx="6" fill="#3b82f6"/>
+      <rect x="78" y="63" width="44" height="54" rx="5" fill="#1e40af"/>
+      <text x="100" y="95" text-anchor="middle" font-family="'Courier New', monospace"
+        font-size="22" fill="white" font-weight="bold">A</text>
+    </g>
+    <text x="54" y="33" font-family="Georgia, serif" font-size="22" fill="white"
+      font-weight="bold" letter-spacing="1">Articulate</text>
+    <text x="55" y="46" font-family="Georgia, serif" font-size="6.5" fill="#93c5fd"
+      letter-spacing="2.5">COLLABORATIVE DOCUMENT EDITING</text>
+  </svg>
+`;
 var TopBar = () => {
   const doc = state.currentDoc.value;
   const version = state.currentVersion.value;
   const revSeq = state.currentRevisionSeq.value;
   const diff = state.currentDiff.value;
   const user = state.currentUser.value;
+  const currentPath = route.value.path;
+  const isDocsPage = currentPath.startsWith("/docs");
   const versionHref = doc && version ? `/${doc.id}/${version.id}` : null;
   const handleLogout = async (e4) => {
     e4.preventDefault();
@@ -1179,65 +1202,87 @@ var TopBar = () => {
     state.currentUser.value = null;
     navigate2("/login");
   };
+  const handleDocsToggle = (e4) => {
+    e4.preventDefault();
+    if (isDocsPage) {
+      const prev = previousPath.value;
+      navigate2(prev && !prev.startsWith("/docs") ? prev : "/");
+    } else {
+      navigate2("/docs");
+    }
+  };
   return m2`
     <header class="top-bar">
-      <a class="top-bar__brand" href="/" onclick=${(e4) => {
+      <!-- Tier 1: brand + user -->
+      <div class="top-bar__primary">
+        <a class="top-bar__brand" href="/" onclick=${(e4) => {
     e4.preventDefault();
     navigate2("/");
   }}>
-        Articulate
-      </a>
-      ${doc && m2`
-        <span class="top-bar__sep">/</span>
-        <a class="top-bar__crumb" href="/${doc.id}" onclick=${(e4) => {
-    e4.preventDefault();
-    navigate2(`/${doc.id}`);
-  }}>
-          ${doc.title}
+          <${Wordmark} />
         </a>
-      `}
-      ${version && m2`
-        <span class="top-bar__sep">/</span>
-        ${diff ? m2`<a class="top-bar__crumb" href=${versionHref} onclick=${(e4) => {
-    e4.preventDefault();
-    navigate2(versionHref);
-  }}>${version.name}</a>` : m2`<span class="top-bar__current">${version.name}</span>`}
-        ${version.kind === "branch" && m2`<span class="top-bar__badge">branch</span>`}
-        ${!!version.locked && m2`<span class="top-bar__badge">locked</span>`}
-      `}
-      ${version && revSeq != null && m2`
-        <span class="top-bar__sep">/</span>
-        ${diff ? m2`<a class="top-bar__crumb" href=${versionHref + "/rev/" + revSeq} onclick=${(e4) => {
-    e4.preventDefault();
-    navigate2(versionHref + "/rev/" + revSeq);
-  }}>Rev ${revSeq}</a>` : m2`<span class="top-bar__current">Rev ${revSeq}</span>`}
-      `}
-      ${diff && m2`
-        <span class="top-bar__sep">/</span>
-        <span class="top-bar__current">Diff: Rev ${diff.seqA} \u2192 Rev ${diff.seqB}</span>
-      `}
-      <div class="top-bar__spacer" />
-      <a class="top-bar__link" href="/docs" onclick=${(e4) => {
-    e4.preventDefault();
-    navigate2("/docs");
-  }}>
-        Docs
-      </a>
-      ${user ? m2`
-          ${user.role === "admin" && m2`
-            <a class="top-bar__link" href="/admin" onclick=${(e4) => {
+        <div class="top-bar__user-area">
+          ${user ? m2`
+              ${user.role === "admin" && m2`
+                <a class="top-bar__link" href="/admin"
+                  onclick=${(e4) => {
     e4.preventDefault();
     navigate2("/admin");
   }}>Admin</a>
-          `}
-          <span class="top-bar__user">${user.display_name || user.username}</span>
-          <a class="top-bar__link" href="/login" onclick=${handleLogout}>Log out</a>
-        ` : m2`
-          <a class="top-bar__link" href="/login" onclick=${(e4) => {
+              `}
+              <span class="top-bar__user">${user.display_name || user.username}</span>
+              <a class="top-bar__link" href="/login" onclick=${handleLogout}>Log out</a>
+            ` : m2`
+              <a class="top-bar__link" href="/login"
+                onclick=${(e4) => {
     e4.preventDefault();
     navigate2("/login");
   }}>Log in</a>
-        `}
+            `}
+        </div>
+      </div>
+
+      <!-- Tier 2: breadcrumbs + docs toggle -->
+      <div class="top-bar__secondary">
+        <nav class="top-bar__breadcrumbs">
+          ${doc && m2`
+            <a class="top-bar__crumb" href="/${doc.id}"
+              onclick=${(e4) => {
+    e4.preventDefault();
+    navigate2(`/${doc.id}`);
+  }}>
+              ${doc.title}
+            </a>
+          `}
+          ${version && m2`
+            <span class="top-bar__sep">/</span>
+            ${diff ? m2`<a class="top-bar__crumb" href=${versionHref}
+                  onclick=${(e4) => {
+    e4.preventDefault();
+    navigate2(versionHref);
+  }}>${version.name}</a>` : m2`<span class="top-bar__current">${version.name}</span>`}
+            ${version.kind === "branch" && m2`<span class="top-bar__badge">branch</span>`}
+            ${!!version.locked && m2`<span class="top-bar__badge">locked</span>`}
+          `}
+          ${version && revSeq != null && m2`
+            <span class="top-bar__sep">/</span>
+            ${diff ? m2`<a class="top-bar__crumb" href=${versionHref + "/rev/" + revSeq}
+                  onclick=${(e4) => {
+    e4.preventDefault();
+    navigate2(versionHref + "/rev/" + revSeq);
+  }}>
+                  Rev ${revSeq}
+                </a>` : m2`<span class="top-bar__current">Rev ${revSeq}</span>`}
+          `}
+          ${diff && m2`
+            <span class="top-bar__sep">/</span>
+            <span class="top-bar__current">Diff ${diff.seqA}\u2192${diff.seqB}</span>
+          `}
+        </nav>
+        <a class="top-bar__docs-btn" href="/docs" onclick=${handleDocsToggle}>
+          ${isDocsPage ? "Close docs" : "Docs"}
+        </a>
+      </div>
     </header>
   `;
 };
@@ -4403,6 +4448,15 @@ var DocsPage = ({ params }) => {
 var DocsPage_default = DocsPage;
 
 // src/client/components/LoginPage.js
+var getNextPath = () => {
+  try {
+    const params = new URLSearchParams(location.search);
+    const next = params.get("next");
+    return next ? decodeURIComponent(next) : "/";
+  } catch {
+    return "/";
+  }
+};
 var LoginPage = () => {
   const [username, setUsername] = d2("");
   const [password, setPassword] = d2("");
@@ -4426,7 +4480,7 @@ var LoginPage = () => {
         return;
       }
       state.currentUser.value = result.user;
-      navigate2("/");
+      navigate2(getNextPath());
     } catch (err) {
       setError(err.message || "Login failed");
       setLoading(false);
@@ -4451,7 +4505,7 @@ var LoginPage = () => {
       });
       const data = await api_default.get("/auth/me");
       state.currentUser.value = data.user;
-      navigate2("/");
+      navigate2(getNextPath());
     } catch (err) {
       setError(err.message || "Password change failed");
       setLoading(false);

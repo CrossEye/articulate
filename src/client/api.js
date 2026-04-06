@@ -12,7 +12,8 @@ const request = async (path, options = {}) => {
     if (res.status === 401 && !path.startsWith('/auth/me')) {
       const loc = location.pathname
       if (loc !== '/login' && !loc.startsWith('/invite/')) {
-        location.href = '/login'
+        const next = encodeURIComponent(loc + location.search)
+        location.href = `/login?next=${next}`
       }
     }
     throw err

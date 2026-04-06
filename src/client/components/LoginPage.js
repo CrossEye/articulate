@@ -4,6 +4,14 @@ import { state } from '../state.js'
 import { navigate } from '../router.js'
 import api from '../api.js'
 
+const getNextPath = () => {
+  try {
+    const params = new URLSearchParams(location.search)
+    const next = params.get('next')
+    return next ? decodeURIComponent(next) : '/'
+  } catch { return '/' }
+}
+
 const LoginPage = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -30,7 +38,7 @@ const LoginPage = () => {
         return
       }
       state.currentUser.value = result.user
-      navigate('/')
+      navigate(getNextPath())
     } catch (err) {
       setError(err.message || 'Login failed')
       setLoading(false)
@@ -57,7 +65,7 @@ const LoginPage = () => {
       // Re-fetch current user
       const data = await api.get('/auth/me')
       state.currentUser.value = data.user
-      navigate('/')
+      navigate(getNextPath())
     } catch (err) {
       setError(err.message || 'Password change failed')
       setLoading(false)
