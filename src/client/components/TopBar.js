@@ -3,28 +3,14 @@ import { state } from '../state.js'
 import { navigate, previousPath, route } from '../router.js'
 import api from '../api.js'
 
-// Inline wordmark SVG — avoids a network request and allows CSS coloring
 const Wordmark = () => html`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 48" class="top-bar__wordmark" aria-label="Articulate">
-    <!-- Icon: original 200×180 content, scaled to ~44px tall, vertically centered -->
-    <g transform="translate(2, 3) scale(0.232)">
-      <rect x="20" y="10" width="160" height="155" rx="12" fill="#eff6ff"/>
-      <rect x="35" y="23" width="130" height="130" rx="10" fill="#dbeafe"/>
-      <rect x="50" y="37" width="100" height="104" rx="8" fill="#93c5fd"/>
-      <rect x="65" y="51" width="70" height="78" rx="6" fill="#3b82f6"/>
-      <rect x="78" y="63" width="44" height="54" rx="5" fill="#1e40af"/>
-      <text x="100" y="95" text-anchor="middle" font-family="'Courier New', monospace"
-        font-size="22" fill="white" font-weight="bold">A</text>
-    </g>
-    <!-- "Articulate" — 26px, vertically centered -->
-    <text x="50" y="24" dominant-baseline="middle"
-      font-family="Georgia, serif" font-size="26" fill="white"
-      font-weight="bold" letter-spacing="1">Articulate</text>
-    <!-- Tagline — 75% of 26px = ~19.5px, same vertical center -->
-    <text x="218" y="24" dominant-baseline="middle"
-      font-family="Georgia, serif" font-size="19" fill="#93c5fd"
-      letter-spacing="1.5">COLLABORATIVE DOCUMENT EDITING</text>
-  </svg>
+  <div class="top-bar__wordmark">
+    <img class="top-bar__icon" src="/assets/icon.svg" alt="" />
+    <div class="top-bar__wordmark-text">
+      <span class="top-bar__name">Articulate</span>
+      <span class="top-bar__tagline">Collaborative Document Editing</span>
+    </div>
+  </div>
 `
 
 const TopBar = () => {

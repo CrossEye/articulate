@@ -37,5 +37,6 @@ if (watching) {
 // Copy static assets to dist/
 await cp(path.join(__dirname, 'index.html'), path.join(PROJECT_ROOT, 'dist', 'index.html'))
 await cp(path.join(PROJECT_ROOT, '.meta', 'logos', 'e-favicon-32.svg'), path.join(PROJECT_ROOT, 'dist', 'favicon.svg'))
+await cp(path.join(PROJECT_ROOT, '.meta', 'logos', 'g-no-label.svg'), path.join(PROJECT_ROOT, 'dist', 'icon.svg'))
 
 console.log('Build complete.')

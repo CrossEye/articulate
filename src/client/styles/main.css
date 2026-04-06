@@ -92,8 +92,39 @@ a:hover {
 }
 
 .top-bar__wordmark {
-  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.top-bar__icon {
+  height: 40px;
   width: auto;
+  flex-shrink: 0;
+}
+
+.top-bar__wordmark-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.top-bar__name {
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: bold;
+  color: white;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+
+.top-bar__tagline {
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  color: var(--color-accent);
+  letter-spacing: 0.05em;
+  line-height: 1.1;
 }
 
 .top-bar__user-area {
