@@ -1195,12 +1195,13 @@ var TopBar = () => {
   const versionHref = doc && version ? `/${doc.id}/${version.id}` : null;
   const handleLogout = async (e4) => {
     e4.preventDefault();
+    const next = encodeURIComponent(location.pathname + location.search);
     try {
       await api_default.post("/auth/logout");
     } catch (_5) {
     }
     state.currentUser.value = null;
-    navigate2("/login");
+    navigate2(`/login?next=${next}`);
   };
   const handleDocsToggle = (e4) => {
     e4.preventDefault();

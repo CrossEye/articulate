@@ -35,9 +35,10 @@ const TopBar = () => {
 
   const handleLogout = async (e) => {
     e.preventDefault()
+    const next = encodeURIComponent(location.pathname + location.search)
     try { await api.post('/auth/logout') } catch (_) {}
     state.currentUser.value = null
-    navigate('/login')
+    navigate(`/login?next=${next}`)
   }
 
   const handleDocsToggle = (e) => {
