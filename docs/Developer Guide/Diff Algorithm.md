@@ -33,14 +33,16 @@ Caption changes are detected separately and shown inline with `<del>` / `<ins>` 
 
 ### API ###
 
-    GET /api/v1/diff/:revA/:revB
+    GET /api/v1/documents/:docId/diff/:seqA/:seqB
+
+Revisions are referenced by their per-document sequence number.
 
 Returns:
 
 ```json
 {
-  "from": { "id": "...", "message": "...", "created_at": "..." },
-  "to":   { "id": "...", "message": "...", "created_at": "..." },
+  "from": { "id": "...", "seq": 1, "message": "...", "created_at": "..." },
+  "to":   { "id": "...", "seq": 2, "message": "...", "created_at": "..." },
   "summary": { "added": 0, "removed": 0, "modified": 1, "unchanged": 7 },
   "added": [ ... ],
   "removed": [ ... ],
@@ -68,4 +70,4 @@ Users can reach the diff view in three ways:
 2. **History panel** -- click "diff" next to any revision to compare it with its parent.
 3. **Compare selected** -- select two revisions with radio buttons and click "Compare selected" to diff any pair.
 
-The diff URL pattern is `/:docId/:versionSlug/diff/:revA/:revB`.
+The diff URL pattern is `/:docId/:versionSlug/diff/:seqA/:seqB` or `/:docId/:versionSlug/rev/:revSeq/diff/:seqA/:seqB`.

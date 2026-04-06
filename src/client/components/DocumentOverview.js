@@ -93,7 +93,7 @@ const DocumentOverview = ({ params }) => {
       </div>
       ${branches.length === 0
         ? html`<p class="text-muted">No branches yet.</p>`
-        : html`<${VersionTable} versions=${branches} publishedId=${publishedId} docId=${docId} />`
+        : html`<${VersionTable} versions=${branches} publishedId=${publishedId} docId=${docId} showMerge />`
       }
 
       ${tags.length > 0 && html`
@@ -104,7 +104,7 @@ const DocumentOverview = ({ params }) => {
   `
 }
 
-const VersionTable = ({ versions, publishedId, docId }) => html`
+const VersionTable = ({ versions, publishedId, docId, showMerge }) => html`
   <table class="version-table">
     <thead>
       <tr>
@@ -112,6 +112,7 @@ const VersionTable = ({ versions, publishedId, docId }) => html`
         <th>Status</th>
         <th>Description</th>
         <th>Created</th>
+        ${showMerge && html`<th></th>`}
       </tr>
     </thead>
     <tbody>
@@ -124,10 +125,18 @@ const VersionTable = ({ versions, publishedId, docId }) => html`
           </td>
           <td>
             ${v.id === publishedId && html`<span class="status-badge status-badge--published">Published</span>`}
-            ${v.locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
+            ${!!v.locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
           </td>
           <td>${v.description || ''}</td>
           <td>${new Date(v.created_at).toLocaleDateString()}</td>
+          ${showMerge && html`
+            <td>
+              <a href="/${docId}/merge?target=${v.id}"
+                onclick=${(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/${docId}/merge?target=${v.id}`) }}>
+                Merge
+              </a>
+            </td>
+          `}
         </tr>
       `)}
     </tbody>

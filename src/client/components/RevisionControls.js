@@ -53,7 +53,7 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
   const parentSeq = revDetail?.parent_seq
   const seq = revDetail?.seq
   const version = state.currentVersion.value
-  const locked = version?.locked
+  const locked = !!version?.locked
 
   // Tags on the current revision
   const revTags = tags.filter(t => t.revision_id === revisionId)
@@ -198,6 +198,17 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
           </div>
         `
       }
+
+      ${version?.kind === 'branch' && seq && html`
+        <button class="btn btn--sm" onclick=${() => {
+          // Navigate to merge view with this branch's head as "ours"
+          const params = new URLSearchParams({ from: seq })
+          // Try to pre-fill "into" with published version's head seq
+          if (publishedSeq) params.set('into', publishedSeq)
+          if (versionId) params.set('target', versionId)
+          navigate(`/${docId}/merge?${params}`)
+        }}>Merge</button>
+      `}
 
       <button class="btn btn--sm" onclick=${handleShowHistory}>
         ${showHistory ? 'Hide History' : 'History'}

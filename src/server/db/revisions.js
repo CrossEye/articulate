@@ -54,7 +54,7 @@ const createRevision = (db, { versionId, parentId = null, message = null, create
 }
 
 // Create a full revision from scratch (no parent copy, all entries provided)
-const createInitialRevision = (db, { versionId, message = null, createdBy = null, entries }) => {
+const createInitialRevision = (db, { versionId, parentId = null, message = null, createdBy = null, entries, mergeSources = null }) => {
   const id = uuidv7()
 
   const insert = db.transaction(() => {
@@ -67,9 +67,9 @@ const createInitialRevision = (db, { versionId, message = null, createdBy = null
     const seq = (maxSeq?.m || 0) + 1
 
     db.prepare(`
-      INSERT INTO revisions (id, version_id, parent_id, message, created_by, seq)
-      VALUES (?, ?, NULL, ?, ?, ?)
-    `).run(id, versionId, message, createdBy, seq)
+      INSERT INTO revisions (id, version_id, parent_id, message, created_by, merge_sources, seq)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, versionId, parentId, message, createdBy, mergeSources ? JSON.stringify(mergeSources) : null, seq)
 
     const stmt = db.prepare(`
       INSERT INTO tree_entries (revision_id, path, node_id, parent_path, sort_key, marker, depth)
