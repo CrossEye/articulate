@@ -22,11 +22,16 @@ const addRoute = (pattern, component) => {
 
 const navigate = (path, replace = false) => {
   if (path === location.pathname) return
-  const prev = location.pathname + location.search
+  const currentIsDoc = location.pathname.startsWith('/docs')
+  const nextIsDoc = path.startsWith('/docs')
   if (replace) {
     history.replaceState(null, '', path)
   } else {
-    previousPath.value = prev
+    // Only record previousPath when entering docs from outside.
+    // While navigating within docs, keep the original pre-docs path.
+    if (!currentIsDoc || !nextIsDoc) {
+      previousPath.value = location.pathname + location.search
+    }
     history.pushState(null, '', path)
   }
   route.value = parseLocation()

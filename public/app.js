@@ -1054,11 +1054,14 @@ var addRoute = (pattern, component) => {
 };
 var navigate2 = (path, replace = false) => {
   if (path === location.pathname) return;
-  const prev = location.pathname + location.search;
+  const currentIsDoc = location.pathname.startsWith("/docs");
+  const nextIsDoc = path.startsWith("/docs");
   if (replace) {
     history.replaceState(null, "", path);
   } else {
-    previousPath.value = prev;
+    if (!currentIsDoc || !nextIsDoc) {
+      previousPath.value = location.pathname + location.search;
+    }
     history.pushState(null, "", path);
   }
   route.value = parseLocation();
