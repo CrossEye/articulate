@@ -230,6 +230,95 @@ a:hover {
   padding: 0 4px;
 }
 
+/* ---- Version cards & branch tree ---- */
+
+.version-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.version-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.version-card__name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.version-card__name:hover {
+  text-decoration: underline;
+}
+
+.version-card__desc {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.version-card__branches {
+  margin-top: var(--space-sm);
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--color-border);
+}
+
+.branch-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.branch-tree--nested {
+  padding-left: var(--space-md);
+}
+
+.branch-tree__item {
+  padding: 3px 0;
+}
+
+.branch-tree__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.branch-tree__link {
+  color: var(--color-link);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.branch-tree__link:hover {
+  text-decoration: underline;
+}
+
+.branch-tree__desc {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+/* ---- Readonly banner ---- */
+
+.readonly-banner {
+  background: #fef3c7;
+  color: #92400e;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-sm);
+}
+
+.readonly-banner a {
+  color: #92400e;
+  font-weight: 600;
+}
+
 /* ---- Branch form ---- */
 
 .branch-toolbar {

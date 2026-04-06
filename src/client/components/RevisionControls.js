@@ -4,7 +4,7 @@ import { state } from '../state.js'
 import { navigate } from '../router.js'
 import api from '../api.js'
 
-const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
+const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = false, viewingHistory = false }) => {
   const [showPublish, setShowPublish] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showFork, setShowFork] = useState(false)
@@ -142,10 +142,10 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
 
       ${locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
 
-      ${!locked && !showPublish && html`
+      ${!readOnly && !locked && !showPublish && html`
         <button class="btn btn--sm" onclick=${() => setShowPublish(true)}>Publish</button>
       `}
-      ${showPublish && html`
+      ${!readOnly && showPublish && html`
         <div class="revision-controls__publish">
           <input class="revision-controls__message" type="text"
             placeholder="Describe this revision..."
@@ -218,7 +218,7 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
         Full History
       </button>
 
-      ${!locked && html`
+      ${!readOnly && !locked && html`
         <div class="revision-controls__save">
           <input class="revision-controls__message" type="text"
             placeholder="Revision note..."

@@ -7,7 +7,7 @@ import { nextMarker } from '../../shared/markers.js'
 import NodeEditor from './NodeEditor.js'
 import { EditorToolbar } from './NodeEditor.js'
 
-const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath, addingChildOf, onEdit, onSave, onCancel, onAddChild, onAddChildSubmit, onCancelAdd, onDelete }) => {
+const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath, addingChildOf, onEdit, onSave, onCancel, onAddChild, onAddChildSubmit, onCancelAdd, onDelete, readOnly }) => {
   const bodyHtml = node.body
     ? renderCrossRefs(marked(node.body))
     : ''
@@ -28,11 +28,13 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
       <div class="subtree-node__header">
         ${node.marker && html`<span class="subtree-node__marker">${node.marker}.</span>`}
         <span class="subtree-node__caption">${node.caption || ''}</span>
-        <div class="subtree-node__actions">
-          <button class="subtree-btn" onclick=${() => onEdit(node.path)} title="Edit">✎</button>
-          <button class="subtree-btn" onclick=${() => onAddChild(node.path)} title="Add child">+</button>
-          <button class="subtree-btn subtree-btn--danger" onclick=${() => onDelete(node.path)} title="Delete">🗑</button>
-        </div>
+        ${!readOnly && html`
+          <div class="subtree-node__actions">
+            <button class="subtree-btn" onclick=${() => onEdit(node.path)} title="Edit">✎</button>
+            <button class="subtree-btn" onclick=${() => onAddChild(node.path)} title="Add child">+</button>
+            <button class="subtree-btn subtree-btn--danger" onclick=${() => onDelete(node.path)} title="Delete">🗑</button>
+          </div>
+        `}
       </div>
       ${isEditing
         ? html`<${NodeEditor}
@@ -72,6 +74,7 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
               onAddChildSubmit=${onAddChildSubmit}
               onCancelAdd=${onCancelAdd}
               onDelete=${onDelete}
+              readOnly=${readOnly}
             />`
           })}
         </div>

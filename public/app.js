@@ -1051,7 +1051,7 @@ var addRoute = (pattern, component) => {
   });
   routes.push({ regex: new RegExp(`^${regex}$`), keys, component });
 };
-var navigate = (path, replace = false) => {
+var navigate2 = (path, replace = false) => {
   if (path === location.pathname) return;
   if (replace) {
     history.replaceState(null, "", path);
@@ -1177,13 +1177,13 @@ var TopBar = () => {
     } catch (_5) {
     }
     state.currentUser.value = null;
-    navigate("/login");
+    navigate2("/login");
   };
   return m2`
     <header class="top-bar">
       <a class="top-bar__brand" href="/" onclick=${(e4) => {
     e4.preventDefault();
-    navigate("/");
+    navigate2("/");
   }}>
         Articulate
       </a>
@@ -1191,7 +1191,7 @@ var TopBar = () => {
         <span class="top-bar__sep">/</span>
         <a class="top-bar__crumb" href="/${doc.id}" onclick=${(e4) => {
     e4.preventDefault();
-    navigate(`/${doc.id}`);
+    navigate2(`/${doc.id}`);
   }}>
           ${doc.title}
         </a>
@@ -1200,7 +1200,7 @@ var TopBar = () => {
         <span class="top-bar__sep">/</span>
         ${diff ? m2`<a class="top-bar__crumb" href=${versionHref} onclick=${(e4) => {
     e4.preventDefault();
-    navigate(versionHref);
+    navigate2(versionHref);
   }}>${version.name}</a>` : m2`<span class="top-bar__current">${version.name}</span>`}
         ${version.kind === "branch" && m2`<span class="top-bar__badge">branch</span>`}
         ${!!version.locked && m2`<span class="top-bar__badge">locked</span>`}
@@ -1209,7 +1209,7 @@ var TopBar = () => {
         <span class="top-bar__sep">/</span>
         ${diff ? m2`<a class="top-bar__crumb" href=${versionHref + "/rev/" + revSeq} onclick=${(e4) => {
     e4.preventDefault();
-    navigate(versionHref + "/rev/" + revSeq);
+    navigate2(versionHref + "/rev/" + revSeq);
   }}>Rev ${revSeq}</a>` : m2`<span class="top-bar__current">Rev ${revSeq}</span>`}
       `}
       ${diff && m2`
@@ -1219,7 +1219,7 @@ var TopBar = () => {
       <div class="top-bar__spacer" />
       <a class="top-bar__link" href="/docs" onclick=${(e4) => {
     e4.preventDefault();
-    navigate("/docs");
+    navigate2("/docs");
   }}>
         Docs
       </a>
@@ -1227,7 +1227,7 @@ var TopBar = () => {
           ${user.role === "admin" && m2`
             <a class="top-bar__link" href="/admin" onclick=${(e4) => {
     e4.preventDefault();
-    navigate("/admin");
+    navigate2("/admin");
   }}>Admin</a>
           `}
           <span class="top-bar__user">${user.display_name || user.username}</span>
@@ -1235,7 +1235,7 @@ var TopBar = () => {
         ` : m2`
           <a class="top-bar__link" href="/login" onclick=${(e4) => {
     e4.preventDefault();
-    navigate("/login");
+    navigate2("/login");
   }}>Log in</a>
         `}
     </header>
@@ -1277,8 +1277,15 @@ var DocumentOverview = ({ params }) => {
   if (state.loading.value) return m2`<main class="main-content"><p>Loading...</p></main>`;
   if (!doc) return m2`<main class="main-content"><p>Document not found.</p></main>`;
   const publishedId = doc.published_version;
-  const mainVersions = versions.filter((v5) => v5.kind !== "branch");
-  const branches = versions.filter((v5) => v5.kind === "branch");
+  const topVersions = versions.filter((v5) => v5.kind === "version");
+  const branchesByParent = /* @__PURE__ */ new Map();
+  for (const v5 of versions) {
+    if (v5.kind !== "branch") continue;
+    const parent = v5.parent_version_id || "_orphan";
+    const list = branchesByParent.get(parent) || [];
+    list.push(v5);
+    branchesByParent.set(parent, list);
+  }
   const handleCreateBranch = async () => {
     if (!branchName.trim()) return;
     setBusy(true);
@@ -1291,7 +1298,7 @@ var DocumentOverview = ({ params }) => {
       setShowNewBranch(false);
       setBranchName("");
       setBranchSource("");
-      navigate(`/${docId}/${ver.id}`);
+      navigate2(`/${docId}/${ver.id}`);
     } catch (err) {
       alert(err.message);
     }
@@ -1303,17 +1310,24 @@ var DocumentOverview = ({ params }) => {
       <p>
         <a href="/${docId}/history" onclick=${(e4) => {
     e4.preventDefault();
-    navigate(`/${docId}/history`);
+    navigate2(`/${docId}/history`);
   }}>
           View History Graph
         </a>
       </p>
 
-      <h2>Versions</h2>
-      ${mainVersions.length === 0 ? m2`<p class="text-muted">No versions yet.</p>` : m2`<${VersionTable} versions=${mainVersions} publishedId=${publishedId} docId=${docId} />`}
+      ${topVersions.map((v5) => m2`
+        <${VersionCard}
+          key=${v5.id}
+          version=${v5}
+          isPublished=${v5.id === publishedId}
+          branches=${branchesByParent}
+          docId=${docId}
+          tags=${tags}
+        />
+      `)}
 
-      <h2>Branches</h2>
-      <div class="branch-toolbar">
+      <div class="branch-toolbar" style="margin-top: 1.5rem">
         ${!showNewBranch ? m2`<button class="btn btn--sm" onclick=${() => setShowNewBranch(true)}>New Branch</button>` : m2`
             <div class="branch-form">
               <input class="branch-form__input" type="text" placeholder="Branch name..."
@@ -1328,7 +1342,6 @@ var DocumentOverview = ({ params }) => {
             </div>
           `}
       </div>
-      ${branches.length === 0 ? m2`<p class="text-muted">No branches yet.</p>` : m2`<${VersionTable} versions=${branches} publishedId=${publishedId} docId=${docId} showMerge />`}
 
       ${tags.length > 0 && m2`
         <h2>Tags</h2>
@@ -1337,47 +1350,56 @@ var DocumentOverview = ({ params }) => {
     </main>
   `;
 };
-var VersionTable = ({ versions, publishedId, docId, showMerge }) => m2`
-  <table class="version-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Status</th>
-        <th>Description</th>
-        <th>Created</th>
-        ${showMerge && m2`<th></th>`}
-      </tr>
-    </thead>
-    <tbody>
-      ${versions.map((v5) => m2`
-        <tr class="version-row" onclick=${() => navigate(`/${docId}/${v5.id}`)}>
-          <td>
-            <a href="/${docId}/${v5.id}" onclick=${(e4) => e4.preventDefault()}>
-              ${v5.name}
+var VersionCard = ({ version: v5, isPublished, branches, docId, tags }) => {
+  const directBranches = branches.get(v5.id) || [];
+  const versionTags = tags.filter((t5) => t5.revision_id && directBranches.some((b5) => b5.head_rev === t5.revision_id));
+  return m2`
+    <div class="version-card">
+      <div class="version-card__header">
+        <a class="version-card__name" href="/${docId}/${v5.id}"
+          onclick=${(e4) => {
+    e4.preventDefault();
+    navigate2(`/${docId}/${v5.id}`);
+  }}>
+          ${v5.name}
+        </a>
+        ${isPublished && m2`<span class="status-badge status-badge--published">Published</span>`}
+        ${!!v5.locked && m2`<span class="status-badge status-badge--locked">Locked</span>`}
+        ${v5.description && m2`<span class="version-card__desc">${v5.description}</span>`}
+      </div>
+      ${directBranches.length > 0 && m2`
+        <div class="version-card__branches">
+          <${BranchTree} branches=${directBranches} allBranches=${branches} docId=${docId} tags=${tags} depth=${0} />
+        </div>
+      `}
+    </div>
+  `;
+};
+var BranchTree = ({ branches, allBranches, docId, tags, depth }) => m2`
+  <ul class="branch-tree ${depth > 0 ? "branch-tree--nested" : ""}">
+    ${branches.map((b5) => {
+  const children = allBranches.get(b5.id) || [];
+  const branchTags = tags.filter((t5) => t5.revision_id === b5.head_rev);
+  return m2`
+        <li class="branch-tree__item" key=${b5.id}>
+          <div class="branch-tree__row">
+            <a class="branch-tree__link" href="/${docId}/${b5.id}"
+              onclick=${(e4) => {
+    e4.preventDefault();
+    navigate2(`/${docId}/${b5.id}`);
+  }}>
+              ${b5.name}
             </a>
-          </td>
-          <td>
-            ${v5.id === publishedId && m2`<span class="status-badge status-badge--published">Published</span>`}
-            ${!!v5.locked && m2`<span class="status-badge status-badge--locked">Locked</span>`}
-          </td>
-          <td>${v5.description || ""}</td>
-          <td>${new Date(v5.created_at).toLocaleDateString()}</td>
-          ${showMerge && m2`
-            <td>
-              <a href="/${docId}/merge?target=${v5.id}"
-                onclick=${(e4) => {
-  e4.preventDefault();
-  e4.stopPropagation();
-  navigate(`/${docId}/merge?target=${v5.id}`);
-}}>
-                Merge
-              </a>
-            </td>
+            ${branchTags.map((t5) => m2`<span class="tag-badge tag-badge--sm" key=${t5.name}>${t5.name}</span>`)}
+            ${b5.description && m2`<span class="branch-tree__desc">${b5.description}</span>`}
+          </div>
+          ${children.length > 0 && m2`
+            <${BranchTree} branches=${children} allBranches=${allBranches} docId=${docId} tags=${tags} depth=${depth + 1} />
           `}
-        </tr>
-      `)}
-    </tbody>
-  </table>
+        </li>
+      `;
+})}
+  </ul>
 `;
 var TagList = ({ tags, docId }) => m2`
   <table class="version-table">
@@ -1409,7 +1431,7 @@ var TreeNode = ({ node, docId, versionSlug, depth = 0 }) => {
   const handleClick = (e4) => {
     e4.preventDefault();
     const pathSuffix = node.path;
-    navigate(`/${docId}/${versionSlug}/${pathSuffix}`);
+    navigate2(`/${docId}/${versionSlug}/${pathSuffix}`);
   };
   const toggleExpand = (e4) => {
     e4.stopPropagation();
@@ -1475,7 +1497,7 @@ var NodeBreadcrumbs = ({ path, docId, versionSlug, treeData }) => {
           href="/${docId}/${versionSlug}/${crumb.path}"
           onclick=${(e4) => {
     e4.preventDefault();
-    navigate(`/${docId}/${versionSlug}/${crumb.path}`);
+    navigate2(`/${docId}/${versionSlug}/${crumb.path}`);
   }}
         >${crumb.label}</a>
       `)}
@@ -2855,7 +2877,7 @@ var EditorToolbar = ({ onInsert }) => m2`
 var NodeEditor_default = NodeEditor;
 
 // src/client/components/SubtreeNode.js
-var SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath, addingChildOf, onEdit, onSave, onCancel, onAddChild, onAddChildSubmit, onCancelAdd, onDelete }) => {
+var SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath, addingChildOf, onEdit, onSave, onCancel, onAddChild, onAddChildSubmit, onCancelAdd, onDelete, readOnly }) => {
   const bodyHtml = node.body ? renderCrossRefs(g4(node.body)) : "";
   const isEditing = editingPath === node.path;
   const isAddingChild = addingChildOf === node.path;
@@ -2863,7 +2885,7 @@ var SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath
     const link = e4.target.closest(".cross-ref");
     if (link) {
       e4.preventDefault();
-      navigate(`/${docId}/${versionSlug}/${link.dataset.path}`);
+      navigate2(`/${docId}/${versionSlug}/${link.dataset.path}`);
     }
   };
   return m2`
@@ -2871,11 +2893,13 @@ var SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath
       <div class="subtree-node__header">
         ${node.marker && m2`<span class="subtree-node__marker">${node.marker}.</span>`}
         <span class="subtree-node__caption">${node.caption || ""}</span>
-        <div class="subtree-node__actions">
-          <button class="subtree-btn" onclick=${() => onEdit(node.path)} title="Edit">✎</button>
-          <button class="subtree-btn" onclick=${() => onAddChild(node.path)} title="Add child">+</button>
-          <button class="subtree-btn subtree-btn--danger" onclick=${() => onDelete(node.path)} title="Delete">🗑</button>
-        </div>
+        ${!readOnly && m2`
+          <div class="subtree-node__actions">
+            <button class="subtree-btn" onclick=${() => onEdit(node.path)} title="Edit">✎</button>
+            <button class="subtree-btn" onclick=${() => onAddChild(node.path)} title="Add child">+</button>
+            <button class="subtree-btn subtree-btn--danger" onclick=${() => onDelete(node.path)} title="Delete">🗑</button>
+          </div>
+        `}
       </div>
       ${isEditing ? m2`<${NodeEditor_default}
             node=${node}
@@ -2912,6 +2936,7 @@ var SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath
               onAddChildSubmit=${onAddChildSubmit}
               onCancelAdd=${onCancelAdd}
               onDelete=${onDelete}
+              readOnly=${readOnly}
             />`;
   })}
         </div>
@@ -2973,7 +2998,7 @@ var AddChildForm = ({ parentPath: parentPath2, siblings, onSubmit, onCancel }) =
 var SubtreeNode_default = SubtreeNode;
 
 // src/client/components/RevisionControls.js
-var RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
+var RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = false, viewingHistory = false }) => {
   const [showPublish, setShowPublish] = d2(false);
   const [showHistory, setShowHistory] = d2(false);
   const [showFork, setShowFork] = d2(false);
@@ -3057,7 +3082,7 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
       });
       setShowFork(false);
       setForkName("");
-      navigate(`/${docId}/${ver.id}`);
+      navigate2(`/${docId}/${ver.id}`);
     } catch (err) {
       alert(err.message);
     }
@@ -3089,10 +3114,10 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
 
       ${locked && m2`<span class="status-badge status-badge--locked">Locked</span>`}
 
-      ${!locked && !showPublish && m2`
+      ${!readOnly && !locked && !showPublish && m2`
         <button class="btn btn--sm" onclick=${() => setShowPublish(true)}>Publish</button>
       `}
-      ${showPublish && m2`
+      ${!readOnly && showPublish && m2`
         <div class="revision-controls__publish">
           <input class="revision-controls__message" type="text"
             placeholder="Describe this revision..."
@@ -3107,13 +3132,13 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
       `}
 
       ${parentSeq && m2`
-        <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/${versionSlug}/rev/${seq}/diff/${parentSeq}/${seq}`)}>
+        <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/${versionSlug}/rev/${seq}/diff/${parentSeq}/${seq}`)}>
           Diff
         </button>
       `}
 
       ${publishedSeq && seq && m2`
-        <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/${versionSlug}/rev/${seq}/diff/${publishedSeq}/${seq}`)}>
+        <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/${versionSlug}/rev/${seq}/diff/${publishedSeq}/${seq}`)}>
           Compare to published
         </button>
       `}
@@ -3145,7 +3170,7 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
     const params = new URLSearchParams({ from: seq });
     if (publishedSeq) params.set("into", publishedSeq);
     if (versionId) params.set("target", versionId);
-    navigate(`/${docId}/merge?${params}`);
+    navigate2(`/${docId}/merge?${params}`);
   }}>Merge</button>
       `}
 
@@ -3153,11 +3178,11 @@ var RevisionControls = ({ revisionId, versionId, docId, versionSlug }) => {
         ${showHistory ? "Hide History" : "History"}
       </button>
 
-      <button class="btn btn--sm" onclick=${() => navigate(`/${docId}/history${seq ? "?rev=" + seq : ""}`)}>
+      <button class="btn btn--sm" onclick=${() => navigate2(`/${docId}/history${seq ? "?rev=" + seq : ""}`)}>
         Full History
       </button>
 
-      ${!locked && m2`
+      ${!readOnly && !locked && m2`
         <div class="revision-controls__save">
           <input class="revision-controls__message" type="text"
             placeholder="Revision note..."
@@ -3198,7 +3223,7 @@ var RevisionHistory = ({ revisions, currentId, docId, versionSlug, tags }) => {
       if (a4 && b5) {
         const sorted = [a4, b5].sort((x5, y6) => x5 - y6);
         const revSeq = seqById.get(currentId) || sorted[1];
-        navigate(`/${docId}/${versionSlug}/rev/${revSeq}/diff/${sorted[0]}/${sorted[1]}`);
+        navigate2(`/${docId}/${versionSlug}/rev/${revSeq}/diff/${sorted[0]}/${sorted[1]}`);
       }
     }
   };
@@ -3237,7 +3262,7 @@ var RevisionHistory = ({ revisions, currentId, docId, versionSlug, tags }) => {
                     href="/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}"
                     onclick=${(e4) => {
     e4.preventDefault();
-    navigate(`/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}`);
+    navigate2(`/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}`);
   }}>
                     diff
                   </a>
@@ -3254,7 +3279,7 @@ var RevisionControls_default = RevisionControls;
 
 // src/client/components/NodeContextView.js
 var LOCK_RENEW_INTERVAL = 3 * 6e4;
-var NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
+var NodeContextView = ({ revisionId, path, docId, versionSlug, readOnly = false }) => {
   const [subtree, setSubtree] = d2(null);
   const [loading, setLoading] = d2(true);
   const [editingPath, setEditingPath] = d2(null);
@@ -3349,7 +3374,7 @@ var NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
       await refreshAfterChange(result.revisionId);
       if (nodePath === path) {
         const parent = parentPath(path);
-        if (parent) navigate(`/${docId}/${versionSlug}/${parent}`);
+        if (parent) navigate2(`/${docId}/${versionSlug}/${parent}`);
       }
     }
   }, [revId, refreshAfterChange, path, docId, versionSlug]);
@@ -3375,6 +3400,7 @@ var NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
         onAddChildSubmit=${handleAddChildSubmit}
         onCancelAdd=${handleCancelAdd}
         onDelete=${handleDelete}
+        readOnly=${readOnly}
       />
     </div>
   `;
@@ -3393,14 +3419,14 @@ var RevisionView = ({ params }) => {
       api_default.get(`/documents/${docId}/versions`)
     ]).then(([doc, versions]) => {
       state.currentDoc.value = doc;
-      const version = versions.find((v5) => v5.id === versionSlug);
-      if (!version) {
+      const version2 = versions.find((v5) => v5.id === versionSlug);
+      if (!version2) {
         state.error.value = "Version not found";
         state.loading.value = false;
         return;
       }
-      state.currentVersion.value = version;
-      const revPromise = revSeq ? api_default.get(`/documents/${docId}/rev/${revSeq}`).then((rev) => rev.id) : Promise.resolve(version.head_rev);
+      state.currentVersion.value = version2;
+      const revPromise = revSeq ? api_default.get(`/documents/${docId}/rev/${revSeq}`).then((rev) => rev.id) : Promise.resolve(version2.head_rev);
       return revPromise.then((revId) => {
         state.currentRevision.value = revId;
         return api_default.get(`/revisions/${revId}/tree`).then((tree) => {
@@ -3426,9 +3452,13 @@ var RevisionView = ({ params }) => {
   const revisionId = state.currentRevision.value;
   const currentPath = pathParam || state.currentPath.value;
   const treeData = state.treeData.value;
+  const version = state.currentVersion.value;
   if (state.loading.value) {
     return m2`<main class="main-content"><p>Loading...</p></main>`;
   }
+  const isBranch = version?.kind === "branch";
+  const isReadOnly = !isBranch || !!version?.locked;
+  const viewingHistory = !!revSeq;
   return m2`
     <div class="revision-view">
       <${TreeSidebar_default} docId=${docId} versionSlug=${versionSlug} />
@@ -3439,7 +3469,25 @@ var RevisionView = ({ params }) => {
             versionId=${versionSlug}
             docId=${docId}
             versionSlug=${versionSlug}
+            readOnly=${isReadOnly}
+            viewingHistory=${viewingHistory}
           />
+        `}
+        ${isReadOnly && !viewingHistory && m2`
+          <div class="readonly-banner">
+            ${version?.locked ? "This version is locked." : "This is a version. To make changes, work on a branch."}
+          </div>
+        `}
+        ${viewingHistory && m2`
+          <div class="readonly-banner">
+            Viewing historical revision. ${""}
+            <a href="/${docId}/${versionSlug}" onclick=${(e4) => {
+    e4.preventDefault();
+    navigate(`/${docId}/${versionSlug}`);
+  }}>
+              Return to tip
+            </a>
+          </div>
         `}
         ${currentPath && m2`
           <${NodeBreadcrumbs_default}
@@ -3454,6 +3502,7 @@ var RevisionView = ({ params }) => {
               path=${currentPath}
               docId=${docId}
               versionSlug=${versionSlug}
+              readOnly=${isReadOnly || viewingHistory}
             />` : m2`<p class="text-muted">Select a node from the tree.</p>`}
       </main>
     </div>
@@ -3773,7 +3822,7 @@ var MergeView = ({ params }) => {
           <a href="/${docId}/${versionSlug}/rev/${committed.seq}"
             onclick=${(e4) => {
       e4.preventDefault();
-      navigate(`/${docId}/${versionSlug}/rev/${committed.seq}`);
+      navigate2(`/${docId}/${versionSlug}/rev/${committed.seq}`);
     }}>
             View merged revision
           </a>
@@ -4158,7 +4207,7 @@ var BranchGraph = ({ params }) => {
       <div class="branch-graph__nav">
         <a href="/${docId}" onclick=${(e4) => {
     e4.preventDefault();
-    navigate(`/${docId}`);
+    navigate2(`/${docId}`);
   }}>
           \u2190 Back to document
         </a>
@@ -4191,7 +4240,7 @@ var BranchGraph = ({ params }) => {
     const isHighlighted = highlightSeq === node.seq;
     return m2`
               <g key=${node.id} class="branch-graph__node"
-                onclick=${() => navigate(`/${docId}/${versionId}/rev/${node.seq}`)}>
+                onclick=${() => navigate2(`/${docId}/${versionId}/rev/${node.seq}`)}>
                 <title>${"Rev " + node.seq + (node.message ? " \u2014 " + node.message : "") + "\n" + (/* @__PURE__ */ new Date(node.created_at + "Z")).toLocaleString()}</title>
                 ${isHighlighted && m2`
                   <circle class="branch-graph__current"
@@ -4293,7 +4342,7 @@ var DocsPage = ({ params }) => {
     api_default.get(`/docs/content/${docPath}`).then((data) => setContent(data.html)).catch(() => setContent("<p>Page not found.</p>"));
   }, [urlPath]);
   const handleSelect = (fsPath) => {
-    navigate(`/docs/${toUrlPath(fsPath)}`);
+    navigate2(`/docs/${toUrlPath(fsPath)}`);
   };
   return m2`
     <div class="docs-view">
@@ -4330,7 +4379,7 @@ var LoginPage = () => {
         return;
       }
       state.currentUser.value = result.user;
-      navigate("/");
+      navigate2("/");
     } catch (err) {
       setError(err.message || "Login failed");
       setLoading(false);
@@ -4355,7 +4404,7 @@ var LoginPage = () => {
       });
       const data = await api_default.get("/auth/me");
       state.currentUser.value = data.user;
-      navigate("/");
+      navigate2("/");
     } catch (err) {
       setError(err.message || "Password change failed");
       setLoading(false);
@@ -4447,7 +4496,7 @@ var InvitePage = ({ params }) => {
         displayName: displayName.value || void 0
       });
       state.currentUser.value = result.user;
-      navigate("/");
+      navigate2("/");
     } catch (err) {
       error.value = err.message || "Registration failed";
       submitting.value = false;
@@ -4464,7 +4513,7 @@ var InvitePage = ({ params }) => {
           <p class="auth-error">${error.value}</p>
           <a href="/login" onclick=${(e4) => {
       e4.preventDefault();
-      navigate("/login");
+      navigate2("/login");
     }}>Go to login</a>
         </div>
       </main>
@@ -4797,7 +4846,7 @@ var Home = () => {
             ${docs.map((d5) => m2`
               <li><a href="/${d5.id}" onclick=${(e4) => {
     e4.preventDefault();
-    navigate(`/${d5.id}`);
+    navigate2(`/${d5.id}`);
   }}>${d5.title}</a></li>
             `)}
           </ul>

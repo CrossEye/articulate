@@ -62,10 +62,15 @@ const RevisionView = ({ params }) => {
   const revisionId = state.currentRevision.value
   const currentPath = pathParam || state.currentPath.value
   const treeData = state.treeData.value
+  const version = state.currentVersion.value
 
   if (state.loading.value) {
     return html`<main class="main-content"><p>Loading...</p></main>`
   }
+
+  const isBranch = version?.kind === 'branch'
+  const isReadOnly = !isBranch || !!version?.locked
+  const viewingHistory = !!revSeq
 
   return html`
     <div class="revision-view">
@@ -77,7 +82,24 @@ const RevisionView = ({ params }) => {
             versionId=${versionSlug}
             docId=${docId}
             versionSlug=${versionSlug}
+            readOnly=${isReadOnly}
+            viewingHistory=${viewingHistory}
           />
+        `}
+        ${isReadOnly && !viewingHistory && html`
+          <div class="readonly-banner">
+            ${version?.locked
+              ? 'This version is locked.'
+              : 'This is a version. To make changes, work on a branch.'}
+          </div>
+        `}
+        ${viewingHistory && html`
+          <div class="readonly-banner">
+            Viewing historical revision. ${''}
+            <a href="/${docId}/${versionSlug}" onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${versionSlug}`) }}>
+              Return to tip
+            </a>
+          </div>
         `}
         ${currentPath && html`
           <${NodeBreadcrumbs}
@@ -93,6 +115,7 @@ const RevisionView = ({ params }) => {
               path=${currentPath}
               docId=${docId}
               versionSlug=${versionSlug}
+              readOnly=${isReadOnly || viewingHistory}
             />`
           : html`<p class="text-muted">Select a node from the tree.</p>`
         }

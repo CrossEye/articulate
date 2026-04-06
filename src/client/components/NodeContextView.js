@@ -11,7 +11,7 @@ import RevisionControls from './RevisionControls.js'
 const AUTOSAVE_DELAY = 2000
 const LOCK_RENEW_INTERVAL = 3 * 60_000
 
-const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
+const NodeContextView = ({ revisionId, path, docId, versionSlug, readOnly = false }) => {
   const [subtree, setSubtree] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingPath, setEditingPath] = useState(null)
@@ -159,6 +159,7 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
         onAddChildSubmit=${handleAddChildSubmit}
         onCancelAdd=${handleCancelAdd}
         onDelete=${handleDelete}
+        readOnly=${readOnly}
       />
     </div>
   `

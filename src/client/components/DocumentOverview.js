@@ -40,8 +40,17 @@ const DocumentOverview = ({ params }) => {
   if (!doc) return html`<main class="main-content"><p>Document not found.</p></main>`
 
   const publishedId = doc.published_version
-  const mainVersions = versions.filter(v => v.kind !== 'branch')
-  const branches = versions.filter(v => v.kind === 'branch')
+  const topVersions = versions.filter(v => v.kind === 'version')
+
+  // Build branch tree: group branches by parent_version_id
+  const branchesByParent = new Map()
+  for (const v of versions) {
+    if (v.kind !== 'branch') continue
+    const parent = v.parent_version_id || '_orphan'
+    const list = branchesByParent.get(parent) || []
+    list.push(v)
+    branchesByParent.set(parent, list)
+  }
 
   const handleCreateBranch = async () => {
     if (!branchName.trim()) return
@@ -71,14 +80,18 @@ const DocumentOverview = ({ params }) => {
         </a>
       </p>
 
-      <h2>Versions</h2>
-      ${mainVersions.length === 0
-        ? html`<p class="text-muted">No versions yet.</p>`
-        : html`<${VersionTable} versions=${mainVersions} publishedId=${publishedId} docId=${docId} />`
-      }
+      ${topVersions.map(v => html`
+        <${VersionCard}
+          key=${v.id}
+          version=${v}
+          isPublished=${v.id === publishedId}
+          branches=${branchesByParent}
+          docId=${docId}
+          tags=${tags}
+        />
+      `)}
 
-      <h2>Branches</h2>
-      <div class="branch-toolbar">
+      <div class="branch-toolbar" style="margin-top: 1.5rem">
         ${!showNewBranch
           ? html`<button class="btn btn--sm" onclick=${() => setShowNewBranch(true)}>New Branch</button>`
           : html`
@@ -96,10 +109,6 @@ const DocumentOverview = ({ params }) => {
           `
         }
       </div>
-      ${branches.length === 0
-        ? html`<p class="text-muted">No branches yet.</p>`
-        : html`<${VersionTable} versions=${branches} publishedId=${publishedId} docId=${docId} showMerge />`
-      }
 
       ${tags.length > 0 && html`
         <h2>Tags</h2>
@@ -109,43 +118,52 @@ const DocumentOverview = ({ params }) => {
   `
 }
 
-const VersionTable = ({ versions, publishedId, docId, showMerge }) => html`
-  <table class="version-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Status</th>
-        <th>Description</th>
-        <th>Created</th>
-        ${showMerge && html`<th></th>`}
-      </tr>
-    </thead>
-    <tbody>
-      ${versions.map(v => html`
-        <tr class="version-row" onclick=${() => navigate(`/${docId}/${v.id}`)}>
-          <td>
-            <a href="/${docId}/${v.id}" onclick=${(e) => e.preventDefault()}>
-              ${v.name}
+const VersionCard = ({ version: v, isPublished, branches, docId, tags }) => {
+  const directBranches = branches.get(v.id) || []
+  const versionTags = tags.filter(t => t.revision_id && directBranches.some(b => b.head_rev === t.revision_id))
+
+  return html`
+    <div class="version-card">
+      <div class="version-card__header">
+        <a class="version-card__name" href="/${docId}/${v.id}"
+          onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${v.id}`) }}>
+          ${v.name}
+        </a>
+        ${isPublished && html`<span class="status-badge status-badge--published">Published</span>`}
+        ${!!v.locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
+        ${v.description && html`<span class="version-card__desc">${v.description}</span>`}
+      </div>
+      ${directBranches.length > 0 && html`
+        <div class="version-card__branches">
+          <${BranchTree} branches=${directBranches} allBranches=${branches} docId=${docId} tags=${tags} depth=${0} />
+        </div>
+      `}
+    </div>
+  `
+}
+
+const BranchTree = ({ branches, allBranches, docId, tags, depth }) => html`
+  <ul class="branch-tree ${depth > 0 ? 'branch-tree--nested' : ''}">
+    ${branches.map(b => {
+      const children = allBranches.get(b.id) || []
+      const branchTags = tags.filter(t => t.revision_id === b.head_rev)
+      return html`
+        <li class="branch-tree__item" key=${b.id}>
+          <div class="branch-tree__row">
+            <a class="branch-tree__link" href="/${docId}/${b.id}"
+              onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${b.id}`) }}>
+              ${b.name}
             </a>
-          </td>
-          <td>
-            ${v.id === publishedId && html`<span class="status-badge status-badge--published">Published</span>`}
-            ${!!v.locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
-          </td>
-          <td>${v.description || ''}</td>
-          <td>${new Date(v.created_at).toLocaleDateString()}</td>
-          ${showMerge && html`
-            <td>
-              <a href="/${docId}/merge?target=${v.id}"
-                onclick=${(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/${docId}/merge?target=${v.id}`) }}>
-                Merge
-              </a>
-            </td>
+            ${branchTags.map(t => html`<span class="tag-badge tag-badge--sm" key=${t.name}>${t.name}</span>`)}
+            ${b.description && html`<span class="branch-tree__desc">${b.description}</span>`}
+          </div>
+          ${children.length > 0 && html`
+            <${BranchTree} branches=${children} allBranches=${allBranches} docId=${docId} tags=${tags} depth=${depth + 1} />
           `}
-        </tr>
-      `)}
-    </tbody>
-  </table>
+        </li>
+      `
+    })}
+  </ul>
 `
 
 const TagList = ({ tags, docId }) => html`
