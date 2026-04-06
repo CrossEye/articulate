@@ -7,7 +7,15 @@ const request = async (path, options = {}) => {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw Object.assign(new Error(body.error || res.statusText), { status: res.status })
+    const err = Object.assign(new Error(body.error || res.statusText), { status: res.status })
+    // Redirect to login on 401, unless already on a public page or checking session
+    if (res.status === 401 && !path.startsWith('/auth/me')) {
+      const loc = location.pathname
+      if (loc !== '/login' && !loc.startsWith('/invite/')) {
+        location.href = '/login'
+      }
+    }
+    throw err
   }
   return res.json()
 }

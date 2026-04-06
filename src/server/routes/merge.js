@@ -3,6 +3,7 @@ import * as revisions from '../db/revisions.js'
 import { getVersion } from '../db/versions.js'
 import { getNode, createNode } from '../db/nodes.js'
 import { findLCA, mergeTrees } from '../../shared/merge.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = Router({ mergeParams: true })
 
@@ -73,7 +74,7 @@ router.post('/preview', (req, res) => {
 })
 
 // POST /api/v1/documents/:docId/merge/commit
-router.post('/commit', (req, res) => {
+router.post('/commit', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { docId } = req.params
   const { seqA, seqB, targetVersionId, message, resolutions = {} } = req.body
@@ -146,6 +147,7 @@ router.post('/commit', (req, res) => {
     versionId: targetVersionId,
     parentId: targetVersion.head_rev,
     message: message.trim(),
+    createdBy: req.user?.id,
     mergeSources: [result.revA.id, result.revB.id],
     entries,
   })

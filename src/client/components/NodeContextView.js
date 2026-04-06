@@ -60,7 +60,7 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
   // --- Edit lock management ---
 
   const handleEdit = useCallback(async (nodePath) => {
-    const result = await api.post(`/revisions/${revId}/locks/${nodePath}`, { userId: 'anonymous' })
+    const result = await api.post(`/revisions/${revId}/locks/${nodePath}`, {})
     if (!result.acquired) {
       alert(`This node is being edited by ${result.holder}. Try again after ${new Date(result.expiresAt).toLocaleTimeString()}.`)
       return
@@ -68,7 +68,7 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
     setEditingPath(nodePath)
     setAddingChildOf(null)
     lockRenewTimer.current = setInterval(() => {
-      api.patch(`/revisions/${revId}/locks/${nodePath}`, { userId: 'anonymous' }).catch(() => {})
+      api.patch(`/revisions/${revId}/locks/${nodePath}`, {}).catch(() => {})
     }, LOCK_RENEW_INTERVAL)
   }, [revId])
 
@@ -82,7 +82,7 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug }) => {
       lockRenewTimer.current = null
     }
     if (editingPath) {
-      api.delete(`/revisions/${revId}/locks/${editingPath}?userId=anonymous`).catch(() => {})
+      api.delete(`/revisions/${revId}/locks/${editingPath}`).catch(() => {})
     }
     setEditingPath(null)
   }, [editingPath, revId])

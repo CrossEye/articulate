@@ -1,4 +1,6 @@
-const SCHEMA_VERSION = 5
+import bcrypt from 'bcrypt'
+
+const SCHEMA_VERSION = 6
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -185,6 +187,27 @@ const runMigrations = (db) => {
     const docs = db.prepare('SELECT published_version FROM documents WHERE published_version IS NOT NULL').all()
     for (const { published_version } of docs) {
       db.prepare('UPDATE versions SET locked = 1 WHERE id = ?').run(published_version)
+    }
+  }
+  if (currentVersion < 6) {
+    // Sessions table for express-session
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid     TEXT PRIMARY KEY,
+        sess    TEXT NOT NULL,
+        expired TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_sessions_expired ON sessions(expired);
+    `)
+    // Bootstrap admin if no users exist
+    const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get()
+    if (userCount.c === 0) {
+      const hash = bcrypt.hashSync('changeme', 10)
+      db.prepare(`
+        INSERT INTO users (id, username, display_name, password_hash, role, force_password_change)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('admin', 'admin', 'Administrator', hash, 'admin', 1)
+      console.log('Bootstrap admin created (username: admin, password: changeme)')
     }
   }
   if (currentVersion < SCHEMA_VERSION) {

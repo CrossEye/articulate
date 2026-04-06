@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@preact/signals": "^2.9.0",
+    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.8.0",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "htm": "^3.1.1",
     "marked": "^17.0.5",
     "preact": "^10.29.1"

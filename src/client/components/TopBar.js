@@ -1,14 +1,25 @@
 import { html } from 'htm/preact'
 import { state } from '../state.js'
 import { navigate } from '../router.js'
+import api from '../api.js'
 
 const TopBar = () => {
   const doc = state.currentDoc.value
   const version = state.currentVersion.value
   const revSeq = state.currentRevisionSeq.value
   const diff = state.currentDiff.value
+  const user = state.currentUser.value
 
   const versionHref = doc && version ? `/${doc.id}/${version.id}` : null
+
+  const handleLogout = async (e) => {
+    e.preventDefault()
+    try {
+      await api.post('/auth/logout')
+    } catch (_) {}
+    state.currentUser.value = null
+    navigate('/login')
+  }
 
   return html`
     <header class="top-bar">
@@ -45,6 +56,18 @@ const TopBar = () => {
       <a class="top-bar__link" href="/docs" onclick=${(e) => { e.preventDefault(); navigate('/docs') }}>
         Docs
       </a>
+      ${user
+        ? html`
+          ${user.role === 'admin' && html`
+            <a class="top-bar__link" href="/admin" onclick=${(e) => { e.preventDefault(); navigate('/admin') }}>Admin</a>
+          `}
+          <span class="top-bar__user">${user.display_name || user.username}</span>
+          <a class="top-bar__link" href="/login" onclick=${handleLogout}>Log out</a>
+        `
+        : html`
+          <a class="top-bar__link" href="/login" onclick=${(e) => { e.preventDefault(); navigate('/login') }}>Log in</a>
+        `
+      }
     </header>
   `
 }

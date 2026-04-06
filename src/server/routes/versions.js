@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import * as versions from '../db/versions.js'
 import { createInitialRevision, getTree, getRevision, getRevisionBySeq } from '../db/revisions.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = Router({ mergeParams: true })
 
@@ -18,7 +19,7 @@ router.get('/:versionId', (req, res) => {
 
 // POST /api/v1/documents/:docId/versions
 // body: { id, name, description?, forkedFrom?, forkedFromSeq?, kind? }
-router.post('/', (req, res) => {
+router.post('/', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { docId } = req.params
   const { id, name, description, forkedFrom, forkedFromSeq, kind = 'version' } = req.body
@@ -50,6 +51,7 @@ router.post('/', (req, res) => {
       createInitialRevision(db, {
         versionId: id,
         message: `Forked from Rev ${sourceRev?.seq || '?'}`,
+        createdBy: req.user?.id,
         entries: parentTree.map(e => ({
           path: e.path,
           nodeId: e.node_id,
@@ -67,7 +69,7 @@ router.post('/', (req, res) => {
 })
 
 // PATCH /api/v1/documents/:docId/versions/:versionId
-router.patch('/:versionId', (req, res) => {
+router.patch('/:versionId', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { name, description } = req.body
   versions.updateVersion(db, req.params.versionId, { name, description })
@@ -76,7 +78,7 @@ router.patch('/:versionId', (req, res) => {
 })
 
 // PATCH /api/v1/documents/:docId/versions/:versionId/lock
-router.patch('/:versionId/lock', (req, res) => {
+router.patch('/:versionId/lock', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { locked } = req.body
   if (locked === undefined) return res.status(400).json({ error: 'locked is required' })

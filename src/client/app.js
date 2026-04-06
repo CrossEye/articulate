@@ -10,8 +10,14 @@ import DiffView from './components/DiffView.js'
 import MergeView from './components/MergeView.js'
 import BranchGraph from './components/BranchGraph.js'
 import DocsPage from './components/DocsPage.js'
+import LoginPage from './components/LoginPage.js'
+import InvitePage from './components/InvitePage.js'
+import AdminPanel from './components/AdminPanel.js'
 
 // Register routes
+addRoute('/login', LoginPage)
+addRoute('/invite/*', InvitePage)
+addRoute('/admin', AdminPanel)
 addRoute('/docs', DocsPage)
 addRoute('/docs/*', DocsPage)
 addRoute('/:docId/merge', MergeView)
@@ -28,8 +34,13 @@ addRoute('/', null) // home
 const App = () => {
   const { component: Component, params: p } = currentMatch.value
 
-  // Load document list on mount
+  // Restore session + load document list on mount
   useEffect(() => {
+    api.get('/auth/me')
+      .then(data => { state.currentUser.value = data.user })
+      .catch(() => {})
+      .finally(() => { state.authChecked.value = true })
+
     api.get('/documents').then(docs => {
       state.documents.value = docs
     }).catch(() => {})

@@ -18,4 +18,20 @@ const getUserByUsername = (db, username) =>
 const listUsers = (db) =>
   db.prepare('SELECT id, username, display_name, role, created_at FROM users ORDER BY created_at').all()
 
-export { createUser, getUser, getUserByUsername, listUsers }
+const updateUser = (db, id, fields) => {
+  const sets = []
+  const values = []
+  if (fields.displayName !== undefined) { sets.push('display_name = ?'); values.push(fields.displayName) }
+  if (fields.role !== undefined) { sets.push('role = ?'); values.push(fields.role) }
+  if (sets.length === 0) return
+  values.push(id)
+  db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...values)
+}
+
+const updatePassword = (db, id, passwordHash) =>
+  db.prepare('UPDATE users SET password_hash = ?, force_password_change = 0 WHERE id = ?').run(passwordHash, id)
+
+const deleteUser = (db, id) =>
+  db.prepare('DELETE FROM users WHERE id = ?').run(id)
+
+export { createUser, getUser, getUserByUsername, listUsers, updateUser, updatePassword, deleteUser }

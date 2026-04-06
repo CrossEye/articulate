@@ -20,6 +20,10 @@ const state = {
   // Node content cache: path -> { entry, node }
   nodeCache: signal(new Map()),
 
+  // Auth
+  currentUser: signal(null),
+  authChecked: signal(false),
+
   // Loading / error state
   loading: signal(false),
   error: signal(null),

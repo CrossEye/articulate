@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import * as revisions from '../db/revisions.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = Router({ mergeParams: true })
 
@@ -21,7 +22,7 @@ revisionDetail.get('/:revisionId', (req, res) => {
 
 // POST /api/v1/versions/:versionId/revisions
 // body: { message, changes: [{ action, path, nodeId?, parentPath?, sortKey?, marker?, depth? }] }
-router.post('/', (req, res) => {
+router.post('/', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { versionId } = req.params
   const { message, changes = [] } = req.body
@@ -52,6 +53,7 @@ router.post('/', (req, res) => {
       parentId,
       message,
       entries,
+      createdBy: req.user?.id,
     })
   } catch (err) {
     if (err.message.includes('locked version')) return res.status(409).json({ error: 'Version is locked' })
@@ -67,7 +69,7 @@ router.post('/', (req, res) => {
 })
 
 // PATCH /api/v1/revisions/:revisionId/publish
-revisionDetail.patch('/:revisionId/publish', (req, res) => {
+revisionDetail.patch('/:revisionId/publish', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { message } = req.body || {}
   if (!message || !message.trim()) {

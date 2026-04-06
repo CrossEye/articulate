@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import * as tags from '../db/tags.js'
 import { getRevisionBySeq } from '../db/revisions.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = Router({ mergeParams: true })
 
@@ -10,7 +11,7 @@ router.get('/', (req, res) => {
 })
 
 // POST /api/v1/documents/:docId/tags
-router.post('/', (req, res) => {
+router.post('/', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { docId } = req.params
   const { name, revisionId, revisionSeq } = req.body
@@ -35,7 +36,7 @@ router.post('/', (req, res) => {
 })
 
 // PATCH /api/v1/documents/:docId/tags/:name — move tag
-router.patch('/:name', (req, res) => {
+router.patch('/:name', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { docId, name } = req.params
   const { revisionId, revisionSeq } = req.body
@@ -56,7 +57,7 @@ router.patch('/:name', (req, res) => {
 })
 
 // DELETE /api/v1/documents/:docId/tags/:name
-router.delete('/:name', (req, res) => {
+router.delete('/:name', requireAuth, (req, res) => {
   const db = req.app.locals.db
   const { docId, name } = req.params
 
