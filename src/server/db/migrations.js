@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 
-const SCHEMA_VERSION = 9
+const SCHEMA_VERSION = 10
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -259,6 +259,21 @@ const runMigrations = (db) => {
     if (!rcols.some(c => c.name === 'archived_at')) {
       db.exec(`ALTER TABLE revisions ADD COLUMN archived_at TEXT`)
     }
+  }
+  if (currentVersion < 10) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS node_reviews (
+        version_id  TEXT NOT NULL REFERENCES versions(id),
+        path        TEXT NOT NULL,
+        user_id     TEXT NOT NULL REFERENCES users(id),
+        status      TEXT NOT NULL,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (version_id, path, user_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_node_reviews_version ON node_reviews(version_id);
+      CREATE INDEX IF NOT EXISTS idx_node_reviews_version_path ON node_reviews(version_id, path);
+    `)
   }
   if (currentVersion < SCHEMA_VERSION) {
     db.prepare('INSERT OR REPLACE INTO _meta (key, value) VALUES (?, ?)')

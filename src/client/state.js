@@ -24,6 +24,9 @@ const state = {
   currentUser: signal(null),
   authChecked: signal(false),
 
+  // Comment counts per path for current version (unresolved top-level only)
+  commentCounts: signal({}),
+
   // Loading / error state
   loading: signal(false),
   error: signal(null),

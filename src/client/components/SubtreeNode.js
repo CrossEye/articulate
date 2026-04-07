@@ -6,6 +6,7 @@ import { navigate } from '../router.js'
 import { nextMarker } from '../../shared/markers.js'
 import NodeEditor from './NodeEditor.js'
 import { EditorToolbar } from './NodeEditor.js'
+import CommentThread from './CommentThread.js'
 
 const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPath, addingChildOf, onEdit, onSave, onCancel, onAddChild, onAddChildSubmit, onCancelAdd, onDelete, readOnly }) => {
   const bodyHtml = node.body
@@ -47,6 +48,7 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
               <div class="subtree-node__body" onclick=${handleLinkClick} dangerouslySetInnerHTML=${{ __html: bodyHtml }} />
             `}
             <${NodeMetadata} raw=${node.metadata} />
+            <${CommentThread} versionId=${versionSlug} path=${node.path} />
           `
       }
       ${isAddingChild && html`

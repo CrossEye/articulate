@@ -7,6 +7,11 @@ import NodeBreadcrumbs from './NodeBreadcrumbs.js'
 import NodeContextView from './NodeContextView.js'
 import RevisionControls from './RevisionControls.js'
 
+const loadCommentCounts = (versionSlug) =>
+  api.get(`/versions/${versionSlug}/comments/counts`)
+    .then(counts => { state.commentCounts.value = counts })
+    .catch(() => {})
+
 const RevisionView = ({ params }) => {
   const { docId, versionSlug, revSeq } = params
   // Everything after docId/versionSlug (and optional /rev/:revSeq) is the node path
@@ -14,6 +19,7 @@ const RevisionView = ({ params }) => {
 
   useEffect(() => {
     state.currentDiff.value = null
+    state.commentCounts.value = {}
     state.loading.value = true
     Promise.all([
       api.get(`/documents/${docId}`),
@@ -27,6 +33,7 @@ const RevisionView = ({ params }) => {
         return
       }
       state.currentVersion.value = version
+      loadCommentCounts(versionSlug)
 
       // If a specific revision seq is in the URL, resolve it; otherwise use head
       const revPromise = revSeq

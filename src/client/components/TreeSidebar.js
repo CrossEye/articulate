@@ -3,10 +3,19 @@ import { useState } from 'preact/hooks'
 import { state, buildNestedTree } from '../state.js'
 import { navigate } from '../router.js'
 
+// Returns true if this node or any descendant has unresolved comments
+const hasComments = (node, counts) => {
+  if (counts[node.path]) return true
+  return node.children?.some(c => hasComments(c, counts)) ?? false
+}
+
 const TreeNode = ({ node, docId, versionSlug, depth = 0 }) => {
   const [expanded, setExpanded] = useState(depth < 2)
   const isActive = state.currentPath.value === node.path
   const hasChildren = node.children && node.children.length > 0
+  const counts = state.commentCounts.value
+  const ownCount = counts[node.path] || 0
+  const descendantHasComments = !ownCount && hasComments(node, counts)
 
   const handleClick = (e) => {
     e.preventDefault()
@@ -29,6 +38,8 @@ const TreeNode = ({ node, docId, versionSlug, depth = 0 }) => {
         <a class="tree-node__label" href="/${docId}/${versionSlug}/${node.path}" onclick=${handleClick}>
           ${node.marker ? `${node.marker}. ` : ''}${node.caption || node.path}
         </a>
+        ${ownCount > 0 && html`<span class="tree-node__comment-badge" title="${ownCount} unresolved comment${ownCount !== 1 ? 's' : ''}">${ownCount}</span>`}
+        ${descendantHasComments && html`<span class="tree-node__comment-dot" title="Unresolved comments in subtree" />`}
       </div>
       ${hasChildren && expanded && html`
         <ul class="tree-node__children">

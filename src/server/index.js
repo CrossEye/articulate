@@ -19,6 +19,7 @@ import diffRouter from './routes/diff.js'
 import tagsRouter from './routes/tags.js'
 import mergeRouter from './routes/merge.js'
 import workflowRouter from './routes/workflow.js'
+import commentsRouter from './routes/comments.js'
 import { createLiveReload } from './live-reload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -60,6 +61,7 @@ app.use('/api/v1/documents/:docId/tags', tagsRouter)
 app.use('/api/v1/documents/:docId/merge', mergeRouter)
 app.use('/api/v1/documents/:docId/versions', workflowRouter)
 app.use('/api/v1/documents/:docId/branches', workflowRouter)
+app.use('/api/v1/versions/:versionId', commentsRouter)
 
 // API root
 app.get('/api/v1', (req, res) => {
