@@ -20,6 +20,7 @@ const RevisionView = ({ params }) => {
   useEffect(() => {
     state.currentDiff.value = null
     state.commentCounts.value = {}
+    state.showComments.value = false
     state.loading.value = true
     Promise.all([
       api.get(`/documents/${docId}`),
@@ -34,6 +35,18 @@ const RevisionView = ({ params }) => {
       }
       state.currentVersion.value = version
       loadCommentCounts(versionSlug)
+
+      // Initial comments visibility: version metadata → localStorage → false
+      const lsKey = `comments:${docId}`
+      let initial = false
+      const meta = version.metadata ? JSON.parse(version.metadata) : null
+      if (meta?.comments_enabled != null) {
+        initial = !!meta.comments_enabled
+      } else {
+        const stored = localStorage.getItem(lsKey)
+        if (stored !== null) initial = stored === 'true'
+      }
+      state.showComments.value = initial
 
       // If a specific revision seq is in the URL, resolve it; otherwise use head
       const revPromise = revSeq

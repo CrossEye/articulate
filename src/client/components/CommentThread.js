@@ -3,6 +3,7 @@ import { useState, useEffect } from 'preact/hooks'
 import { state } from '../state.js'
 import api from '../api.js'
 
+
 // Refresh the sidebar comment counts after any mutation
 const refreshCounts = (versionId) =>
   api.get(`/versions/${versionId}/comments/counts`)
@@ -10,6 +11,8 @@ const refreshCounts = (versionId) =>
     .catch(() => {})
 
 const CommentThread = ({ versionId, path }) => {
+  if (!state.showComments.value) return null
+
   const [comments, setComments] = useState([])
   const [reviews, setReviews] = useState([])
   const [open, setOpen] = useState(false)

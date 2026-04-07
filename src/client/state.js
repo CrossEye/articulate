@@ -27,6 +27,9 @@ const state = {
   // Comment counts per path for current version (unresolved top-level only)
   commentCounts: signal({}),
 
+  // Whether comments are visible globally (toggled by user, persisted to localStorage)
+  showComments: signal(false),
+
   // Loading / error state
   loading: signal(false),
   error: signal(null),

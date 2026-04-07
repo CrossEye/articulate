@@ -78,6 +78,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  width: 100%;
 }
 
 .comment-thread__empty {
@@ -225,6 +226,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  width: 100%;
 }
 
 .comment-new__input {
@@ -239,6 +241,7 @@
   background: var(--color-bg);
   color: var(--color-text);
   resize: vertical;
+  min-height: 4.5rem;
 }
 
 .comment-new__input:focus {

@@ -177,6 +177,13 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
     setBusy(false)
   }
 
+  const showComments = state.showComments.value
+  const handleToggleComments = () => {
+    const next = !showComments
+    state.showComments.value = next
+    localStorage.setItem(`comments:${docId}`, String(next))
+  }
+
   return html`
     <div class="rev-strip" ref=${panelRef}>
 
@@ -186,6 +193,11 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
         ${revTags.map(t => html`<span class="tag-badge" key=${t.name}>${t.name}</span>`)}
         ${locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
         ${version?.kind === 'branch' && html`<${WorkflowBadge} status=${version.workflow_status || null} />`}
+        <button class="rev-strip__toggle ${showComments ? 'rev-strip__toggle--active' : ''}"
+          onclick=${handleToggleComments}
+          title=${showComments ? 'Hide comments' : 'Show comments'}>
+          💬
+        </button>
         <button class="rev-strip__toggle ${showActions ? 'rev-strip__toggle--active' : ''}"
           onclick=${() => setShowActions(!showActions)}
           title=${showActions ? 'Hide actions' : 'Show actions'}>
