@@ -108,8 +108,16 @@ const getRevisionBySeq = (db, docId, seq) =>
     WHERE v.document_id = ? AND r.seq = ?
   `).get(docId, seq)
 
-const listRevisions = (db, versionId) =>
-  db.prepare('SELECT * FROM revisions WHERE version_id = ? ORDER BY id DESC').all(versionId)
+const listRevisions = (db, versionId, { includeArchived = false } = {}) => {
+  const where = includeArchived ? '' : 'AND archived_at IS NULL'
+  return db.prepare(`SELECT * FROM revisions WHERE version_id = ? ${where} ORDER BY seq DESC`).all(versionId)
+}
+
+const archiveRevision = (db, id) =>
+  db.prepare("UPDATE revisions SET archived_at = datetime('now') WHERE id = ?").run(id)
+
+const restoreRevision = (db, id) =>
+  db.prepare('UPDATE revisions SET archived_at = NULL WHERE id = ?').run(id)
 
 const getTree = (db, revisionId) =>
   db.prepare(`
@@ -151,4 +159,6 @@ export {
   getChildren,
   getTreeEntry,
   publishRevision,
+  archiveRevision,
+  restoreRevision,
 }

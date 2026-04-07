@@ -7,7 +7,8 @@ const router = Router({ mergeParams: true })
 
 // GET /api/v1/documents/:docId/versions
 router.get('/', (req, res) => {
-  res.json(versions.listVersions(req.app.locals.db, req.params.docId))
+  const includeArchived = req.query.include_archived === 'true'
+  res.json(versions.listVersions(req.app.locals.db, req.params.docId, { includeArchived }))
 })
 
 // GET /api/v1/documents/:docId/versions/:versionId
@@ -113,6 +114,42 @@ router.patch('/:versionId/lock', requireAuth, (req, res) => {
     versions.unlockVersion(db, req.params.versionId)
   }
 
+  res.json(versions.getVersion(db, req.params.versionId))
+})
+
+// DELETE /api/v1/documents/:docId/versions/:versionId — archive (soft delete)
+router.delete('/:versionId', requireAuth, (req, res) => {
+  const db = req.app.locals.db
+  const version = versions.getVersion(db, req.params.versionId)
+  if (!version) return res.status(404).json({ error: 'Version not found' })
+
+  // Archiving a top-level version requires admin
+  if (version.kind === 'version' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can archive top-level versions' })
+  }
+  // Archiving a branch: creator or admin
+  if (version.kind === 'branch' && req.user.role !== 'admin' && version.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Only the branch creator or an admin can archive this branch' })
+  }
+
+  versions.archiveVersion(db, req.params.versionId)
+  res.json(versions.getVersion(db, req.params.versionId))
+})
+
+// POST /api/v1/documents/:docId/versions/:versionId/restore — unarchive
+router.post('/:versionId/restore', requireAuth, (req, res) => {
+  const db = req.app.locals.db
+  const version = versions.getVersion(db, req.params.versionId)
+  if (!version) return res.status(404).json({ error: 'Version not found' })
+
+  if (version.kind === 'version' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can restore top-level versions' })
+  }
+  if (version.kind === 'branch' && req.user.role !== 'admin' && version.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Only the branch creator or an admin can restore this branch' })
+  }
+
+  versions.restoreVersion(db, req.params.versionId)
   res.json(versions.getVersion(db, req.params.versionId))
 })
 

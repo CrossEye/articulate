@@ -11,13 +11,17 @@ const DocumentOverview = ({ params }) => {
   const [showNewBranch, setShowNewBranch] = useState(false)
   const [branchName, setBranchName] = useState('')
   const [branchSource, setBranchSource] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  const loadVersions = (includeArchived = false) =>
+    api.get(`/documents/${docId}/versions${includeArchived ? '?include_archived=true' : ''}`)
 
   useEffect(() => {
     state.loading.value = true
     Promise.all([
       api.get(`/documents/${docId}`),
-      api.get(`/documents/${docId}/versions`),
+      loadVersions(showArchived),
       api.get(`/documents/${docId}/tags`),
     ]).then(([doc, vers, tgs]) => {
       state.currentDoc.value = doc
@@ -35,7 +39,27 @@ const DocumentOverview = ({ params }) => {
     })
   }, [docId])
 
+  const handleToggleArchived = async () => {
+    const next = !showArchived
+    setShowArchived(next)
+    const vers = await loadVersions(next)
+    setVersions(vers)
+  }
+
+  const handleArchiveVersion = async (versionId) => {
+    await api.delete(`/documents/${docId}/versions/${versionId}`)
+    const vers = await loadVersions(showArchived)
+    setVersions(vers)
+  }
+
+  const handleRestoreVersion = async (versionId) => {
+    await api.post(`/documents/${docId}/versions/${versionId}/restore`, {})
+    const vers = await loadVersions(showArchived)
+    setVersions(vers)
+  }
+
   const doc = state.currentDoc.value
+  const user = state.currentUser.value
   if (state.loading.value) return html`<main class="main-content"><p>Loading...</p></main>`
   if (!doc) return html`<main class="main-content"><p>Document not found.</p></main>`
 
@@ -76,7 +100,11 @@ const DocumentOverview = ({ params }) => {
       <h1>${doc.title}</h1>
       <p>
         <a href="/${docId}/history" onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/history`) }}>
-          View History Graph
+          History Graph
+        </a>
+        ${' · '}
+        <a href="/${docId}/dashboard" onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/dashboard`) }}>
+          Active Branches
         </a>
       </p>
 
@@ -88,6 +116,9 @@ const DocumentOverview = ({ params }) => {
           branches=${branchesByParent}
           docId=${docId}
           tags=${tags}
+          user=${user}
+          onArchive=${handleArchiveVersion}
+          onRestore=${handleRestoreVersion}
         />
       `)}
 
@@ -110,6 +141,10 @@ const DocumentOverview = ({ params }) => {
         }
       </div>
 
+      <button class="btn btn--sm" onclick=${handleToggleArchived} style="margin-left: var(--space-sm)">
+        ${showArchived ? 'Hide archived' : 'Show archived'}
+      </button>
+
       ${tags.length > 0 && html`
         <h2>Tags</h2>
         <${TagList} tags=${tags} docId=${docId} />
@@ -118,12 +153,13 @@ const DocumentOverview = ({ params }) => {
   `
 }
 
-const VersionCard = ({ version: v, isPublished, branches, docId, tags }) => {
+const VersionCard = ({ version: v, isPublished, branches, docId, tags, user, onArchive, onRestore }) => {
   const directBranches = branches.get(v.id) || []
-  const versionTags = tags.filter(t => t.revision_id && directBranches.some(b => b.head_rev === t.revision_id))
+  const isArchived = !!v.archived_at
+  const canArchive = user?.role === 'admin'
 
   return html`
-    <div class="version-card">
+    <div class="version-card ${isArchived ? 'version-card--archived' : ''}">
       <div class="version-card__header">
         <a class="version-card__name" href="/${docId}/${v.id}"
           onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${v.id}`) }}>
@@ -131,34 +167,54 @@ const VersionCard = ({ version: v, isPublished, branches, docId, tags }) => {
         </a>
         ${isPublished && html`<span class="status-badge status-badge--published">Published</span>`}
         ${!!v.locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
+        ${isArchived && html`<span class="status-badge status-badge--archived">Archived</span>`}
         ${v.description && html`<span class="version-card__desc">${v.description}</span>`}
+        ${canArchive && html`
+          <span class="version-card__actions">
+            ${isArchived
+              ? html`<button class="btn btn--xs" onclick=${() => onRestore(v.id)}>Restore</button>`
+              : html`<button class="btn btn--xs btn--danger" onclick=${() => onArchive(v.id)}>Archive</button>`
+            }
+          </span>
+        `}
       </div>
       ${directBranches.length > 0 && html`
         <div class="version-card__branches">
-          <${BranchTree} branches=${directBranches} allBranches=${branches} docId=${docId} tags=${tags} depth=${0} />
+          <${BranchTree} branches=${directBranches} allBranches=${branches} docId=${docId} tags=${tags}
+            depth=${0} user=${user} onArchive=${onArchive} onRestore=${onRestore} />
         </div>
       `}
     </div>
   `
 }
 
-const BranchTree = ({ branches, allBranches, docId, tags, depth }) => html`
+const BranchTree = ({ branches, allBranches, docId, tags, depth, user, onArchive, onRestore }) => html`
   <ul class="branch-tree ${depth > 0 ? 'branch-tree--nested' : ''}">
     ${branches.map(b => {
       const children = allBranches.get(b.id) || []
       const branchTags = tags.filter(t => t.revision_id === b.head_rev)
+      const isArchived = !!b.archived_at
+      const canArchive = user?.role === 'admin' || user?.id === b.created_by
       return html`
-        <li class="branch-tree__item" key=${b.id}>
+        <li class="branch-tree__item ${isArchived ? 'branch-tree__item--archived' : ''}" key=${b.id}>
           <div class="branch-tree__row">
             <a class="branch-tree__link" href="/${docId}/${b.id}"
               onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${b.id}`) }}>
               ${b.name}
             </a>
             ${branchTags.map(t => html`<span class="tag-badge tag-badge--sm" key=${t.name}>${t.name}</span>`)}
+            ${isArchived && html`<span class="status-badge status-badge--archived">Archived</span>`}
             ${b.description && html`<span class="branch-tree__desc">${b.description}</span>`}
+            ${canArchive && html`
+              ${isArchived
+                ? html`<button class="btn btn--xs" onclick=${() => onRestore(b.id)}>Restore</button>`
+                : html`<button class="btn btn--xs btn--danger" onclick=${() => onArchive(b.id)}>Archive</button>`
+              }
+            `}
           </div>
           ${children.length > 0 && html`
-            <${BranchTree} branches=${children} allBranches=${allBranches} docId=${docId} tags=${tags} depth=${depth + 1} />
+            <${BranchTree} branches=${children} allBranches=${allBranches} docId=${docId} tags=${tags}
+              depth=${depth + 1} user=${user} onArchive=${onArchive} onRestore=${onRestore} />
           `}
         </li>
       `

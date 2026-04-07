@@ -305,3 +305,14 @@ details[open] > summary.diff-entry__header::before {
 .revision-history__diff-link:hover {
   text-decoration: underline;
 }
+
+.revision-history__archived td {
+  opacity: 0.5;
+}
+
+.revision-history__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  white-space: nowrap;
+}

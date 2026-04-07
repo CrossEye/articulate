@@ -18,6 +18,7 @@ import locksRouter from './routes/locks.js'
 import diffRouter from './routes/diff.js'
 import tagsRouter from './routes/tags.js'
 import mergeRouter from './routes/merge.js'
+import workflowRouter from './routes/workflow.js'
 import { createLiveReload } from './live-reload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -57,6 +58,8 @@ app.use('/api/v1/revisions', locksRouter)
 app.use('/api/v1/documents/:docId/diff', diffRouter)
 app.use('/api/v1/documents/:docId/tags', tagsRouter)
 app.use('/api/v1/documents/:docId/merge', mergeRouter)
+app.use('/api/v1/documents/:docId/versions', workflowRouter)
+app.use('/api/v1/documents/:docId/branches', workflowRouter)
 
 // API root
 app.get('/api/v1', (req, res) => {

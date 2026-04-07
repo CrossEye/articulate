@@ -42,8 +42,11 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
             onSave=${(data) => onSave(node.path, data)}
             onCancel=${onCancel}
           />`
-        : bodyHtml && html`
-            <div class="subtree-node__body" onclick=${handleLinkClick} dangerouslySetInnerHTML=${{ __html: bodyHtml }} />
+        : html`
+            ${bodyHtml && html`
+              <div class="subtree-node__body" onclick=${handleLinkClick} dangerouslySetInnerHTML=${{ __html: bodyHtml }} />
+            `}
+            <${NodeMetadata} raw=${node.metadata} />
           `
       }
       ${isAddingChild && html`
@@ -80,6 +83,34 @@ const SubtreeNode = ({ node, childNodes, allNodes, docId, versionSlug, editingPa
         </div>
       `}
     </div>
+  `
+}
+
+const NodeMetadata = ({ raw }) => {
+  if (!raw) return null
+  let parsed
+  try {
+    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+  } catch {
+    return null
+  }
+  const entries = Object.entries(parsed).filter(([, v]) => v !== null && v !== '')
+  if (entries.length === 0) return null
+
+  const label = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+  return html`
+    <details class="node-metadata">
+      <summary class="node-metadata__toggle">Metadata</summary>
+      <dl class="node-metadata__list">
+        ${entries.map(([k, v]) => html`
+          <div class="node-metadata__row" key=${k}>
+            <dt class="node-metadata__key">${label(k)}</dt>
+            <dd class="node-metadata__val">${Array.isArray(v) ? v.join(', ') : String(v)}</dd>
+          </div>
+        `)}
+      </dl>
+    </details>
   `
 }
 

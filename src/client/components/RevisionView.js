@@ -68,8 +68,10 @@ const RevisionView = ({ params }) => {
     return html`<main class="main-content"><p>Loading...</p></main>`
   }
 
+  const FROZEN_STAGES = new Set(['first-reading', 'second-reading', 'approved', 'rejected'])
   const isBranch = version?.kind === 'branch'
-  const isReadOnly = !isBranch || !!version?.locked
+  const isFrozen = isBranch && FROZEN_STAGES.has(version?.workflow_status)
+  const isReadOnly = !isBranch || !!version?.locked || isFrozen
   const viewingHistory = !!revSeq
 
   return html`
@@ -90,7 +92,9 @@ const RevisionView = ({ params }) => {
           <div class="readonly-banner">
             ${version?.locked
               ? 'This version is locked.'
-              : 'This is a version. To make changes, work on a branch.'}
+              : isFrozen
+                ? `This branch is in ${version.workflow_status} and cannot be edited.`
+                : 'This is a version. To make changes, work on a branch.'}
           </div>
         `}
         ${viewingHistory && html`

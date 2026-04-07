@@ -89,8 +89,8 @@ const NodeContextView = ({ revisionId, path, docId, versionSlug, readOnly = fals
 
   // --- Save ---
 
-  const handleSave = useCallback(async (nodePath, { body, caption }) => {
-    const result = await api.put(`/revisions/${revId}/nodes/${nodePath}`, { body, caption })
+  const handleSave = useCallback(async (nodePath, { body, caption, metadata }) => {
+    const result = await api.put(`/revisions/${revId}/nodes/${nodePath}`, { body, caption, metadata })
     if (result.changed) {
       await refreshAfterChange(result.revisionId)
     }

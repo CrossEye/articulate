@@ -2,15 +2,19 @@ import { Router } from 'express'
 import * as revisions from '../db/revisions.js'
 import { getVersion } from '../db/versions.js'
 import { createNode, getNode } from '../db/nodes.js'
+import { FROZEN_STAGES } from './workflow.js'
 
 const router = Router({ mergeParams: true })
 
-// Check that the revision belongs to a branch, not a top-level version
+// Check that the revision belongs to an editable branch
 const requireBranch = (db, revisionId) => {
   const rev = revisions.getRevision(db, revisionId)
   if (!rev) return 'Revision not found'
   const ver = getVersion(db, rev.version_id)
   if (ver?.kind === 'version') return 'Cannot edit a version directly; work on a branch instead'
+  if (ver?.workflow_status && FROZEN_STAGES.has(ver.workflow_status)) {
+    return `Cannot edit: this branch is in ${ver.workflow_status}`
+  }
   return null
 }
 

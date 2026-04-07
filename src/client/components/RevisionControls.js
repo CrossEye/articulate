@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'preact/hooks'
 import { state } from '../state.js'
 import { navigate } from '../router.js'
 import api from '../api.js'
+import { WorkflowBadge, WorkflowPanel } from './WorkflowPanel.js'
 
 const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly = false, viewingHistory = false }) => {
   const [showActions, setShowActions] = useState(false)
@@ -113,12 +114,32 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
     setBusy(false)
   }
 
+  const [showArchivedRevisions, setShowArchivedRevisions] = useState(false)
+
+  const loadRevisions = async (includeArchived = false) => {
+    const revs = await api.get(`/versions/${versionId}/revisions${includeArchived ? '?include_archived=true' : ''}`)
+    setRevisions(revs)
+  }
+
   const handleShowHistory = async () => {
-    if (!showHistory) {
-      const revs = await api.get(`/versions/${versionId}/revisions`)
-      setRevisions(revs)
-    }
+    if (!showHistory) await loadRevisions(showArchivedRevisions)
     setShowHistory(!showHistory)
+  }
+
+  const handleToggleArchivedRevisions = async () => {
+    const next = !showArchivedRevisions
+    setShowArchivedRevisions(next)
+    await loadRevisions(next)
+  }
+
+  const handleArchiveRevision = async (revId) => {
+    await api.delete(`/revisions/${revId}`)
+    await loadRevisions(showArchivedRevisions)
+  }
+
+  const handleRestoreRevision = async (revId) => {
+    await api.post(`/revisions/${revId}/restore`, {})
+    await loadRevisions(showArchivedRevisions)
   }
 
   const handleFork = async () => {
@@ -164,6 +185,7 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
         <span class="rev-strip__id" title=${revisionId}>Rev ${seq || '?'}</span>
         ${revTags.map(t => html`<span class="tag-badge" key=${t.name}>${t.name}</span>`)}
         ${locked && html`<span class="status-badge status-badge--locked">Locked</span>`}
+        ${version?.kind === 'branch' && html`<${WorkflowBadge} status=${version.workflow_status || null} />`}
         <button class="rev-strip__toggle ${showActions ? 'rev-strip__toggle--active' : ''}"
           onclick=${() => setShowActions(!showActions)}
           title=${showActions ? 'Hide actions' : 'Show actions'}>
@@ -258,10 +280,21 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
             `}
           </div>
 
+          ${version?.kind === 'branch' && html`
+            <div class="rev-strip__group rev-strip__group--workflow">
+              <${WorkflowPanel} versionId=${versionId} docId=${docId} />
+            </div>
+          `}
+
           <div class="rev-strip__group">
             <button class="btn btn--sm" onclick=${handleShowHistory}>
               ${showHistory ? 'Hide revision list' : 'Revision list'}
             </button>
+            ${showHistory && html`
+              <button class="btn btn--sm" onclick=${handleToggleArchivedRevisions}>
+                ${showArchivedRevisions ? 'Hide archived' : 'Show archived'}
+              </button>
+            `}
           </div>
 
           ${showHistory && html`
@@ -271,6 +304,8 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
               docId=${docId}
               versionSlug=${versionSlug}
               tags=${tags}
+              onArchive=${handleArchiveRevision}
+              onRestore=${handleRestoreRevision}
             />
           `}
         </div>
@@ -279,7 +314,7 @@ const RevisionControls = ({ revisionId, versionId, docId, versionSlug, readOnly 
   `
 }
 
-const RevisionHistory = ({ revisions, currentId, docId, versionSlug, tags }) => {
+const RevisionHistory = ({ revisions, currentId, docId, versionSlug, tags, onArchive, onRestore }) => {
   const [selectedA, setSelectedA] = useState(null)
   const [selectedB, setSelectedB] = useState(null)
 
@@ -319,20 +354,29 @@ const RevisionHistory = ({ revisions, currentId, docId, versionSlug, tags }) => 
         </thead>
         <tbody>
           ${revisions.map(rev => html`
-            <tr class=${rev.id === currentId ? 'revision-history__current' : ''}>
+            <tr class=${[
+              rev.id === currentId ? 'revision-history__current' : '',
+              rev.archived_at ? 'revision-history__archived' : '',
+            ].filter(Boolean).join(' ')}>
               <td><input type="radio" name="diffA" checked=${selectedA === rev.id} onchange=${() => setSelectedA(rev.id)} /></td>
               <td><input type="radio" name="diffB" checked=${selectedB === rev.id} onchange=${() => setSelectedB(rev.id)} /></td>
               <td class="revision-history__seq">${rev.seq || '?'}</td>
               <td>${rev.message || html`<span class="text-muted">-</span>`}</td>
               <td>${(tagsByRevId.get(rev.id) || []).map(name => html`<span class="tag-badge tag-badge--sm" key=${name}>${name}</span> `)}</td>
               <td class="revision-history__date">${new Date(rev.created_at + 'Z').toLocaleString()}</td>
-              <td>
+              <td class="revision-history__actions">
                 ${rev.parent_id && seqById.get(rev.parent_id) && html`
                   <a class="revision-history__diff-link"
                     href="/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}"
                     onclick=${(e) => { e.preventDefault(); navigate(`/${docId}/${versionSlug}/rev/${rev.seq}/diff/${seqById.get(rev.parent_id)}/${rev.seq}`) }}>
                     diff
                   </a>
+                `}
+                ${rev.id !== currentId && html`
+                  ${rev.archived_at
+                    ? html`<button class="btn btn--xs" onclick=${() => onRestore(rev.id)}>Restore</button>`
+                    : html`<button class="btn btn--xs btn--danger" onclick=${() => onArchive(rev.id)}>Archive</button>`
+                  }
                 `}
               </td>
             </tr>

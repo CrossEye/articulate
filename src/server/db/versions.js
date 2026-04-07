@@ -8,8 +8,10 @@ const createVersion = (db, { id, documentId, name, description = null, createdBy
 const getVersion = (db, id) =>
   db.prepare('SELECT * FROM versions WHERE id = ?').get(id)
 
-const listVersions = (db, documentId) =>
-  db.prepare('SELECT * FROM versions WHERE document_id = ? ORDER BY created_at DESC').all(documentId)
+const listVersions = (db, documentId, { includeArchived = false } = {}) => {
+  const where = includeArchived ? '' : 'AND archived_at IS NULL'
+  return db.prepare(`SELECT * FROM versions WHERE document_id = ? ${where} ORDER BY created_at DESC`).all(documentId)
+}
 
 const updateVersion = (db, id, fields) => {
   const sets = []
@@ -44,7 +46,30 @@ const lockVersion = (db, id) =>
 const unlockVersion = (db, id) =>
   db.prepare('UPDATE versions SET locked = 0 WHERE id = ?').run(id)
 
-const listBranches = (db, parentVersionId) =>
-  db.prepare('SELECT * FROM versions WHERE parent_version_id = ? ORDER BY created_at').all(parentVersionId)
+const listBranches = (db, parentVersionId, { includeArchived = false } = {}) => {
+  const where = includeArchived ? '' : 'AND archived_at IS NULL'
+  return db.prepare(`SELECT * FROM versions WHERE parent_version_id = ? ${where} ORDER BY created_at`).all(parentVersionId)
+}
 
-export { createVersion, getVersion, listVersions, updateVersion, lockVersion, unlockVersion, addVersionMember, getVersionMembers, listBranches }
+const setWorkflowStatus = (db, id, status) =>
+  db.prepare('UPDATE versions SET workflow_status = ? WHERE id = ?').run(status, id)
+
+const setMetadata = (db, id, metadata) =>
+  db.prepare('UPDATE versions SET metadata = ? WHERE id = ?').run(JSON.stringify(metadata), id)
+
+const listActiveBranches = (db, documentId) =>
+  db.prepare(`
+    SELECT v.* FROM versions v
+    WHERE v.document_id = ? AND v.kind = 'branch'
+      AND archived_at IS NULL
+      AND (v.workflow_status IS NULL OR v.workflow_status NOT IN ('approved', 'rejected'))
+    ORDER BY v.created_at DESC
+  `).all(documentId)
+
+const archiveVersion = (db, id) =>
+  db.prepare("UPDATE versions SET archived_at = datetime('now') WHERE id = ?").run(id)
+
+const restoreVersion = (db, id) =>
+  db.prepare('UPDATE versions SET archived_at = NULL WHERE id = ?').run(id)
+
+export { createVersion, getVersion, listVersions, updateVersion, lockVersion, unlockVersion, addVersionMember, getVersionMembers, listBranches, setWorkflowStatus, setMetadata, listActiveBranches, archiveVersion, restoreVersion }

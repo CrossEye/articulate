@@ -1,15 +1,29 @@
 import { html } from 'htm/preact'
 import { useState, useEffect, useRef } from 'preact/hooks'
 
+const formatMetadata = (raw) => {
+  if (!raw) return ''
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return JSON.stringify(parsed, null, 2)
+  } catch {
+    return typeof raw === 'string' ? raw : ''
+  }
+}
+
 const NodeEditor = ({ node, onSave, onCancel }) => {
   const [body, setBody] = useState(node.body || '')
   const [caption, setCaption] = useState(node.caption || '')
+  const [metaText, setMetaText] = useState(formatMetadata(node.metadata))
+  const [metaError, setMetaError] = useState(null)
   const [dirty, setDirty] = useState(false)
   const textareaRef = useRef(null)
 
   useEffect(() => {
     setBody(node.body || '')
     setCaption(node.caption || '')
+    setMetaText(formatMetadata(node.metadata))
+    setMetaError(null)
     setDirty(false)
   }, [node.path, node.node_id])
 
@@ -29,7 +43,19 @@ const NodeEditor = ({ node, onSave, onCancel }) => {
 
   const handleSave = () => {
     if (!dirty) return
-    onSave({ body, caption })
+    let metadata = undefined
+    if (metaText.trim()) {
+      try {
+        metadata = JSON.parse(metaText)
+        setMetaError(null)
+      } catch {
+        setMetaError('Invalid JSON — fix before saving')
+        return
+      }
+    } else {
+      metadata = null
+    }
+    onSave({ body, caption, metadata })
     setDirty(false)
   }
 
@@ -86,6 +112,20 @@ const NodeEditor = ({ node, onSave, onCancel }) => {
           />
         </label>
       </div>
+      <details class="node-editor__meta">
+        <summary class="node-editor__meta-toggle">Metadata</summary>
+        <label class="node-editor__label">
+          <textarea
+            class="node-editor__body node-editor__meta-json"
+            placeholder='{ "adoption_date": "2024-01-01", "owner": "HR" }'
+            value=${metaText}
+            onInput=${(e) => { setMetaText(e.target.value); setDirty(true) }}
+            rows="5"
+            spellcheck="false"
+          />
+        </label>
+        ${metaError && html`<p class="node-editor__meta-error">${metaError}</p>`}
+      </details>
       <div class="node-editor__actions">
         <button class="btn btn--primary" onclick=${handleSave} disabled=${!dirty}>
           Save (Ctrl+S)

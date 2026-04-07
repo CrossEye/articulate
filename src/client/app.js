@@ -9,6 +9,7 @@ import RevisionView from './components/RevisionView.js'
 import DiffView from './components/DiffView.js'
 import MergeView from './components/MergeView.js'
 import BranchGraph from './components/BranchGraph.js'
+import BranchDashboard from './components/BranchDashboard.js'
 import DocsPage from './components/DocsPage.js'
 import LoginPage from './components/LoginPage.js'
 import InvitePage from './components/InvitePage.js'
@@ -22,6 +23,7 @@ addRoute('/docs', DocsPage)
 addRoute('/docs/*', DocsPage)
 addRoute('/:docId/merge', MergeView)
 addRoute('/:docId/history', BranchGraph)
+addRoute('/:docId/dashboard', BranchDashboard)
 addRoute('/:docId', DocumentOverview)
 addRoute('/:docId/:versionSlug/rev/:revSeq/diff/:seqA/:seqB', DiffView)
 addRoute('/:docId/:versionSlug/diff/:seqA/:seqB', DiffView)

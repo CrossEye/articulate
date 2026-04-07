@@ -1,12 +1,15 @@
 import { Router } from 'express'
 import * as revisions from '../db/revisions.js'
+import * as versions from '../db/versions.js'
 import { requireAuth } from '../middleware/auth.js'
+import { FROZEN_STAGES } from './workflow.js'
 
 const router = Router({ mergeParams: true })
 
 // GET /api/v1/versions/:versionId/revisions
 router.get('/', (req, res) => {
-  res.json(revisions.listRevisions(req.app.locals.db, req.params.versionId))
+  const includeArchived = req.query.include_archived === 'true'
+  res.json(revisions.listRevisions(req.app.locals.db, req.params.versionId, { includeArchived }))
 })
 
 // GET /api/v1/revisions/:revisionId (mounted separately)
@@ -30,6 +33,9 @@ router.post('/', requireAuth, (req, res) => {
   const version = db.prepare('SELECT * FROM versions WHERE id = ?').get(versionId)
   if (!version) return res.status(404).json({ error: 'Version not found' })
   if (version.kind === 'version') return res.status(403).json({ error: 'Cannot edit a version directly; work on a branch instead' })
+  if (version.workflow_status && FROZEN_STAGES.has(version.workflow_status)) {
+    return res.status(403).json({ error: `Cannot edit: this branch is in ${version.workflow_status}` })
+  }
 
   const parentId = version.head_rev
   const entries = changes
@@ -67,6 +73,31 @@ router.post('/', requireAuth, (req, res) => {
 
   const rev = revisions.getRevision(db, revId)
   res.status(201).json(rev)
+})
+
+// DELETE /api/v1/revisions/:revisionId — archive (soft delete)
+revisionDetail.delete('/:revisionId', requireAuth, (req, res) => {
+  const db = req.app.locals.db
+  const rev = revisions.getRevision(db, req.params.revisionId)
+  if (!rev) return res.status(404).json({ error: 'Revision not found' })
+
+  // Cannot archive the current head revision
+  const ver = versions.getVersion(db, rev.version_id)
+  if (ver?.head_rev === rev.id) {
+    return res.status(409).json({ error: 'Cannot archive the current head revision' })
+  }
+
+  revisions.archiveRevision(db, req.params.revisionId)
+  res.json(revisions.getRevision(db, req.params.revisionId))
+})
+
+// POST /api/v1/revisions/:revisionId/restore — unarchive
+revisionDetail.post('/:revisionId/restore', requireAuth, (req, res) => {
+  const db = req.app.locals.db
+  const rev = revisions.getRevision(db, req.params.revisionId)
+  if (!rev) return res.status(404).json({ error: 'Revision not found' })
+  revisions.restoreRevision(db, req.params.revisionId)
+  res.json(revisions.getRevision(db, req.params.revisionId))
 })
 
 // PATCH /api/v1/revisions/:revisionId/publish

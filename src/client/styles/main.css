@@ -298,6 +298,11 @@ a:hover {
   color: #92400e;
 }
 
+.status-badge--archived {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
 .tag-badge {
   display: inline-block;
   font-size: 0.7rem;
@@ -314,6 +319,18 @@ a:hover {
 }
 
 /* ---- Version cards & branch tree ---- */
+
+.version-card--archived {
+  opacity: 0.55;
+}
+
+.version-card__actions {
+  margin-left: auto;
+}
+
+.branch-tree__item--archived > .branch-tree__row {
+  opacity: 0.55;
+}
 
 .version-card {
   border: 1px solid var(--color-border);
@@ -838,6 +855,11 @@ a:hover {
   font-size: 0.75rem;
 }
 
+.btn--xs {
+  padding: 1px var(--space-xs);
+  font-size: 0.7rem;
+}
+
 .btn--danger {
   color: #991b1b;
   border-color: #fecaca;
@@ -957,4 +979,229 @@ a:hover {
 
 .invite-status--active { color: #16a34a; }
 .invite-status--used { color: var(--color-text-muted); }
+
+/* ---- Workflow badge ---- */
+
+.workflow-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.workflow--draft        { background: #f1f5f9; color: #475569; }
+.workflow--committee    { background: #fef3c7; color: #92400e; }
+.workflow--reading      { background: #dbeafe; color: #1e40af; }
+.workflow--approved     { background: #dcfce7; color: #166534; }
+.workflow--rejected     { background: #fee2e2; color: #991b1b; }
+
+/* ---- Workflow panel (inside actions panel) ---- */
+
+.workflow-panel {
+  width: 100%;
+}
+
+.workflow-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.workflow-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.workflow-panel__note-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.workflow-panel__note-label {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.workflow-panel__note {
+  flex: 1;
+  min-width: 180px;
+  padding: 2px var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.workflow-panel__note:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.workflow-panel__error {
+  color: var(--color-danger, #dc2626);
+  font-size: 0.8rem;
+}
+
+.workflow-panel__log-toggle {
+  margin-bottom: var(--space-xs);
+}
+
+.workflow-panel__log {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.workflow-log-entry {
+  font-size: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.workflow-log-entry__arrow {
+  font-weight: 500;
+}
+
+.workflow-log-entry__who {
+  color: var(--color-text-muted);
+}
+
+.workflow-log-entry__date {
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.workflow-log-entry__note {
+  width: 100%;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ---- rev-strip workflow group ---- */
+
+.rev-strip__group--workflow {
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-sm);
+}
 .invite-status--expired { color: #991b1b; }
+
+/* ---- Branch Dashboard ---- */
+
+.dashboard-header {
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard-header h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 1.4rem;
+  margin: 0 0 var(--space-xs);
+}
+
+.dashboard-header__sep {
+  color: var(--color-text-muted);
+  font-weight: 300;
+}
+
+.dashboard-stage {
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard-stage__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-stage__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dashboard-stage__count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-branch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-branch {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius);
+}
+
+.dashboard-branch:hover {
+  background: var(--color-hover);
+}
+
+.dashboard-branch__main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.dashboard-branch__name {
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dashboard-branch__name:hover {
+  text-decoration: underline;
+}
+
+.dashboard-branch__desc {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-branch__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

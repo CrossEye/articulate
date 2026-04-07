@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 
-const SCHEMA_VERSION = 7
+const SCHEMA_VERSION = 9
 
 const migration_001 = `
   CREATE TABLE IF NOT EXISTS documents (
@@ -227,6 +227,37 @@ const runMigrations = (db) => {
     for (const f of forks) {
       db.prepare('UPDATE versions SET kind = ?, parent_version_id = ? WHERE id = ?')
         .run('branch', f.source_version_id, f.id)
+    }
+  }
+  if (currentVersion < 8) {
+    const vcols = db.prepare('PRAGMA table_info(versions)').all()
+    if (!vcols.some(c => c.name === 'workflow_status')) {
+      db.exec(`ALTER TABLE versions ADD COLUMN workflow_status TEXT`)
+    }
+    if (!vcols.some(c => c.name === 'metadata')) {
+      db.exec(`ALTER TABLE versions ADD COLUMN metadata TEXT`)
+    }
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS workflow_log (
+        id          TEXT PRIMARY KEY,
+        version_id  TEXT NOT NULL REFERENCES versions(id),
+        from_status TEXT,
+        to_status   TEXT NOT NULL,
+        changed_by  TEXT NOT NULL REFERENCES users(id),
+        note        TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_workflow_log_version ON workflow_log(version_id);
+    `)
+  }
+  if (currentVersion < 9) {
+    const vcols = db.prepare('PRAGMA table_info(versions)').all()
+    if (!vcols.some(c => c.name === 'archived_at')) {
+      db.exec(`ALTER TABLE versions ADD COLUMN archived_at TEXT`)
+    }
+    const rcols = db.prepare('PRAGMA table_info(revisions)').all()
+    if (!rcols.some(c => c.name === 'archived_at')) {
+      db.exec(`ALTER TABLE revisions ADD COLUMN archived_at TEXT`)
     }
   }
   if (currentVersion < SCHEMA_VERSION) {
